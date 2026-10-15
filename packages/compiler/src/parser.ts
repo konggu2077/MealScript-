@@ -35,6 +35,10 @@ import type { Field, FieldKind, FieldValue, Program, SourceLocation } from './as
 const finite = (value: number | undefined, fallback: number): number =>
   typeof value === 'number' && Number.isFinite(value) && value > 0 ? value : fallback;
 
+/** Same guard, but keeps "absent" as `undefined` instead of coercing to a fallback. */
+const positive = (value: number | undefined): number | undefined =>
+  typeof value === 'number' && Number.isFinite(value) && value > 0 ? value : undefined;
+
 function locOf(start: IToken, end?: IToken): SourceLocation {
   const stop = end ?? start;
   return {
@@ -52,8 +56,8 @@ function posOf(token: IToken | undefined): { line: number; column: number; endLi
   return {
     line: finite(token.startLine, 1),
     column: finite(token.startColumn, 1),
-    endLine: finite(token.endLine, undefined),
-    endColumn: finite(token.endColumn, undefined),
+    endLine: positive(token.endLine),
+    endColumn: positive(token.endColumn),
   };
 }
 

@@ -10,7 +10,7 @@ import type { BuildResult } from '@mealscript/verifier/pipeline';
 
 const MealEditor = dynamic(() => import('@/components/MealEditor'), {
   ssr: false,
-  loading: () => <div className="p-4 text-sm text-[#6b6b75]">正在加载编辑器…</div>,
+  loading: () => <div className="p-4 text-sm text-fg-3">正在加载编辑器…</div>,
 });
 
 export default function Page() {
@@ -20,10 +20,12 @@ export default function Page() {
   const [result, setResult] = useState<BuildResult | null>(null);
   const [running, setRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [runHint, setRunHint] = useState<string | null>(null);
 
   const run = useCallback(async () => {
     setRunning(true);
     setError(null);
+    setRunHint('编译中…');
     try {
       const response = await fetch('/api/build', {
         method: 'POST',
@@ -34,11 +36,14 @@ export default function Page() {
       if (!response.ok || payload.error) {
         setError(payload.error ?? '构建失败');
         setResult(null);
+        setRunHint(null);
       } else {
         setResult(payload);
+        setRunHint(`完成 · ${payload.trace.events.length} 个 trace 事件`);
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
+      setRunHint(null);
     } finally {
       setRunning(false);
     }
@@ -47,91 +52,137 @@ export default function Page() {
   const events = useMemo(() => result?.trace.events ?? [], [result]);
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-[1400px] flex-col gap-4 p-5">
-      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-ink-700 pb-4">
-        <div>
-          <h1 className="font-mono text-lg text-gold-300">MealScript</h1>
-          <p className="text-xs text-[#6b6b75]">
-            麦门编译器 · Code Your Meal. Compile Your Hunger.
-          </p>
-          <p className="mt-1 text-[11px] text-[#8a8a94]">
-            非麦当劳官方产品 / 独立参赛作品 · 只读查询，永不创建真实订单
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <div className="flex overflow-hidden rounded-lg border border-ink-700">
-            {(['replay', 'live'] as const).map((value) => (
-              <button
-                key={value}
-                type="button"
-                onClick={() => setMode(value)}
-                className={`px-3 py-1.5 text-xs transition-colors ${
-                  mode === value ? 'bg-gold-500/15 text-gold-300' : 'text-[#6b6b75] hover:text-[#c9c9d1]'
-                }`}
-              >
-                {value === 'replay' ? 'Replay' : 'Live'}
-              </button>
-            ))}
-          </div>
-          <button
-            type="button"
-            onClick={run}
-            disabled={running}
-            className="rounded-lg bg-gold-500 px-4 py-1.5 text-sm font-medium text-ink-950 transition-opacity hover:opacity-90 disabled:opacity-50"
+    <main className="mx-auto flex min-h-screen max-w-[1300px] flex-col px-5 pb-12 pt-5">
+      <header className="flex flex-wrap items-center gap-3 border-b border-ink-700 pb-4">
+        <span className="font-mono text-xl font-semibold tracking-wide text-fg">
+          <span className="text-gold-300">Meal</span>Script
+        </span>
+        <span className="text-sm text-fg-2">把「吃什么」写成一门语言，再把它编译成一份有官方价格证据的方案</span>
+        <div className="ml-auto flex flex-wrap items-center gap-2">
+          <span
+            className={`rounded-full border px-3 py-1 font-mono text-xs ${
+              result?.mode === 'live'
+                ? 'border-ok-line bg-ok-bg text-ok-fg'
+                : 'border-warn-line bg-warn-bg text-warn-fg'
+            }`}
           >
-            {running ? 'Compiling…' : 'Compile'}
-          </button>
+            {result?.mode === 'live' ? 'LIVE' : 'REPLAY'}
+          </span>
+          <span className="rounded-full border border-ink-600 bg-ink-850 px-3 py-1 font-mono text-xs text-fg-2">
+            v0.1 · dry_run
+          </span>
+          <span className="rounded-full border border-err-line bg-err-bg px-3 py-1 text-xs text-[#ffb4a2]">
+            非麦当劳官方产品 · 独立参赛作品
+          </span>
         </div>
       </header>
 
-      {error ? (
-        <p className="rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-300">{error}</p>
-      ) : null}
-
-      <div className="grid flex-1 gap-4 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.55fr)_minmax(0,0.95fr)]">
-        <section className="flex min-h-[420px] flex-col overflow-hidden rounded-xl border border-ink-700 bg-ink-900">
-          <div className="flex items-center justify-between border-b border-ink-700 px-3 py-2">
-            <span className="text-xs text-[#6b6b75]">编辑器 · .meal</span>
-            <select
-              value={exampleId}
-              onChange={(e) => {
-                const next = EXAMPLES.find((x) => x.id === e.target.value);
-                if (next) {
-                  setExampleId(next.id);
-                  setSource(next.source);
-                  setResult(null);
-                }
-              }}
-              className="max-w-[60%] rounded-md border border-ink-700 bg-ink-850 px-2 py-1 text-xs text-[#c9c9d1] outline-none"
-            >
+      <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1.08fr)_190px_minmax(0,0.98fr)]">
+        <section className="flex flex-col overflow-hidden rounded-xl border border-ink-700 bg-ink-900">
+          <div className="flex items-center gap-2 border-b border-ink-700 px-3.5 py-2.5 text-xs text-fg-2">
+            <b className="font-semibold text-fg">源码</b>
+            <span>MealScript v0.1</span>
+            <span className="ml-auto text-fg-3">Ctrl + Enter 编译</span>
+          </div>
+          <div className="p-3.5">
+            <div className="flex flex-wrap gap-1.5">
               {EXAMPLES.map((example) => (
-                <option key={example.id} value={example.id}>
+                <button
+                  key={example.id}
+                  type="button"
+                  onClick={() => {
+                    setExampleId(example.id);
+                    setSource(example.source);
+                    setResult(null);
+                    setRunHint(null);
+                  }}
+                  className={`rounded-lg border px-2.5 py-1 text-xs transition-colors ${
+                    exampleId === example.id
+                      ? 'border-gold-300 bg-warn-bg text-gold-300'
+                      : 'border-ink-600 bg-ink-850 text-fg-2 hover:border-gold-300 hover:text-gold-300'
+                  }`}
+                >
                   {example.label}
-                </option>
+                </button>
               ))}
-            </select>
+            </div>
+            <div className="mt-3 h-[330px] overflow-hidden rounded-[10px] border border-ink-700 bg-[#0e1116]">
+              <MealEditor value={source} onChange={setSource} onRun={run} />
+            </div>
+            <div className="mt-3 flex items-center gap-2.5">
+              <button
+                type="button"
+                onClick={run}
+                disabled={running}
+                className="rounded-[9px] border border-gold-300 bg-gold-300 px-[22px] py-2 text-sm font-semibold text-[#1a1300] transition-[filter] hover:brightness-110 disabled:opacity-50"
+              >
+                {running ? 'Compiling…' : 'Compile'}
+              </button>
+              <span className="text-xs text-fg-3">{runHint ?? ''}</span>
+            </div>
           </div>
-          <div className="flex-1">
-            <MealEditor value={source} onChange={setSource} onRun={run} />
-          </div>
-          <p className="border-t border-ink-700 px-3 py-2 text-[11px] text-[#6b6b75]">Ctrl / ⌘ + Enter 运行</p>
         </section>
 
-        <section className="flex flex-col gap-3 rounded-xl border border-ink-700 bg-ink-900 p-3">
-          <h2 className="text-xs font-medium uppercase tracking-wide text-[#6b6b75]">执行阶段</h2>
+        <section className="flex flex-col overflow-hidden rounded-xl border border-ink-700 bg-ink-900">
+          <div className="flex items-center gap-2 border-b border-ink-700 px-3.5 py-2.5 text-xs text-fg-2">
+            <b className="font-semibold text-fg">执行阶段</b>
+          </div>
           <StageRail events={events} />
         </section>
 
-        <section className="flex flex-col gap-3 rounded-xl border border-ink-700 bg-ink-900 p-3">
-          <h2 className="text-xs font-medium uppercase tracking-wide text-[#6b6b75]">结果卡</h2>
-          <ResultCard result={result} />
+        <section className="flex flex-col overflow-hidden rounded-xl border border-ink-700 bg-ink-900">
+          <div className="flex items-center gap-2 border-b border-ink-700 px-3.5 py-2.5 text-xs text-fg-2">
+            <b className="font-semibold text-fg">Build Report</b>
+            <span className="ml-auto font-mono text-fg-3">
+              {result?.trace.id ? result.trace.id.slice(0, 8) : ''}
+            </span>
+          </div>
+          <div className="p-3.5">
+            <ResultCard result={result} />
+          </div>
         </section>
       </div>
 
-      <section className="min-h-[220px] rounded-xl border border-ink-700 bg-ink-900 p-3">
-        <TracePanel events={events} diagnostics={result?.diagnostics ?? []} />
-      </section>
+      {error ? (
+        <p className="mt-4 rounded-lg border border-err-line bg-err-bg px-3 py-2 text-sm text-[#ffb4a2]">{error}</p>
+      ) : null}
+
+      <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.25fr)]">
+        <section className="overflow-hidden rounded-xl border border-ink-700 bg-ink-900">
+          <div className="flex items-center gap-2 border-b border-ink-700 px-3.5 py-2.5 text-xs text-fg-2">
+            <b className="font-semibold text-fg">Diagnostics</b>
+            <span className="ml-auto text-fg-3">{result?.diagnostics.length ?? 0} 条</span>
+          </div>
+          <div className="max-h-[280px] overflow-auto p-3.5">
+            <TracePanel events={[]} diagnostics={result?.diagnostics ?? []} />
+          </div>
+        </section>
+
+        <section className="overflow-hidden rounded-xl border border-ink-700 bg-ink-900">
+          <div className="flex items-center gap-2 border-b border-ink-700 px-3.5 py-2.5 text-xs text-fg-2">
+            <b className="font-semibold text-fg">Trace</b>
+            <span className="ml-auto text-fg-3">已脱敏 · 不含 Token 与个人信息</span>
+          </div>
+          <div className="max-h-[280px] overflow-auto p-3.5">
+            <TracePanel events={events} diagnostics={[]} />
+          </div>
+          <p className="border-t border-ink-700 px-3.5 py-2.5 text-xs text-fg-3">
+            每一次工具调用都留在 trace 里：调了什么、多久、返回了什么结构 —— 全部经过脱敏
+          </p>
+        </section>
+      </div>
+
+      <footer className="mt-6 border-t border-ink-700 pt-3.5 text-xs leading-relaxed text-fg-3">
+        <p>
+          本页默认跑 <b className="font-semibold text-fg-2">Replay</b>：门店与价格取自一次真实会话的
+          <b className="font-semibold text-fg-2">脱敏录制样例</b>，因此状态是 <code className="font-mono text-fg-2">REPLAY_RESULT</code>，
+          绝不会标成 <code className="font-mono text-fg-2">BUILD_PASSED</code>。切到 Live 需要配置
+          <code className="font-mono text-fg-2">MCD_MCP_TOKEN</code>。
+        </p>
+        <p className="mt-1">
+          全程只读，不调用下单、付款、领券等任何写操作。
+        </p>
+      </footer>
     </main>
   );
 }

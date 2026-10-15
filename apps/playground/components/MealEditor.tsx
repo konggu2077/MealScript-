@@ -9,8 +9,8 @@ export function registerMeal(monaco: Monaco) {
   monaco.languages.register({ id: 'meal', extensions: ['.meal'], aliases: ['MealScript', 'meal'] });
 
   monaco.languages.setMonarchTokensProvider('meal', {
-    keywords: [
-      'meal',
+    keywords: ['meal'],
+    fields: [
       'location',
       'mode',
       'budget',
@@ -21,47 +21,51 @@ export function registerMeal(monaco: Monaco) {
       'optimize',
       'execution',
     ],
-    literals: ['pickup', 'delivery', 'dry_run', 'min', 'total_price', 'CNY'],
+    literals: ['pickup', 'delivery', 'dry_run', 'min', 'total_price'],
+    units: ['CNY'],
     tokenizer: {
       root: [
         [/\/\/.*$/, 'comment'],
-        [/\/\*[\s\S]*?\*\//, 'comment'],
-        [
-          /[a-zA-Z_]\w*/,
-          {
-            cases: {
-              '@keywords': 'keyword',
-              '@literals': 'number',
-              '@default': 'identifier',
-            },
+        [/[a-zA-Z_]\w*/, {
+          cases: {
+            '@keywords': 'keyword',
+            '@fields': 'type',
+            '@units': 'annotation',
+            '@literals': 'identifier',
+            '@default': 'identifier',
           },
-        ],
+        }],
         [/"(?:[^"\\]|\\.)*"/, 'string'],
-        [/<=-?\d+(?:\.\d+)?|-?\d+(?:\.\d+)?/, 'number'],
+        [/[<>=]=?/, 'operator'],
         [/[{}()[\];:,]/, 'delimiter'],
-        [/<=|</, 'operator'],
+        [/-?\d+(?:\.\d+)?/, 'number'],
       ],
     },
   });
 
+  // Palette shared with the single-file build (apps/single/template.html).
   monaco.editor.defineTheme('meal-dark', {
     base: 'vs-dark',
     inherit: true,
     rules: [
-      { token: 'keyword', foreground: 'F0C75E', fontStyle: 'bold' },
-      { token: 'string', foreground: '9FE1CB' },
-      { token: 'number', foreground: '85B7EB' },
-      { token: 'comment', foreground: '6B6B75', fontStyle: 'italic' },
-      { token: 'identifier', foreground: 'E7E7EA' },
-      { token: 'delimiter', foreground: '8A8A94' },
-      { token: 'operator', foreground: 'EF9F27' },
+      { token: 'keyword', foreground: 'F5C242', fontStyle: 'bold' },
+      { token: 'type', foreground: '9AA3B2' },
+      { token: 'identifier', foreground: 'E8EAF0' },
+      { token: 'annotation', foreground: '56D4DD' },
+      { token: 'string', foreground: '7EE787' },
+      { token: 'number', foreground: '79C0FF' },
+      { token: 'operator', foreground: '8B949E' },
+      { token: 'delimiter', foreground: '8B949E' },
+      { token: 'comment', foreground: '5D6673', fontStyle: 'italic' },
     ],
     colors: {
-      'editor.background': '#121215',
-      'editor.foreground': '#E7E7EA',
+      'editor.background': '#0E1116',
+      'editor.foreground': '#E8EAF0',
       'editorLineNumber.foreground': '#4A4A54',
-      'editorCursor.foreground': '#F0C75E',
-      'editor.selectionBackground': '#2A2A31',
+      'editorCursor.foreground': '#F5C242',
+      'editor.selectionBackground': '#333C4D',
+      'editor.lineHighlightBackground': '#14181F',
+      'editorIndentGuide.background1': '#252C38',
     },
   });
 }

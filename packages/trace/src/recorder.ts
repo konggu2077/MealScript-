@@ -94,11 +94,23 @@ export class TraceRecorder {
     label?: string;
     request?: unknown;
     response?: unknown;
+    /**
+     * Structural summary of the response shape. When a caller only wants the
+     * shape recorded (e.g. a 120-item menu), it can pass this instead of the
+     * full payload. Derived from `response` when omitted.
+     */
+    responseSummary?: unknown;
     durationMs?: number;
     status?: TraceStatus;
     errorCode?: string;
     message?: string;
   }): TraceEvent {
+    const summary =
+      input.responseSummary !== undefined
+        ? input.responseSummary
+        : input.response !== undefined
+          ? summarize(input.response)
+          : undefined;
     return this.push({
       phase: input.phase,
       kind: 'tool_call',
@@ -106,9 +118,8 @@ export class TraceRecorder {
       tool: input.tool,
       status: input.status ?? 'ok',
       ...(input.request !== undefined ? { request: this.safe(input.request) } : {}),
-      ...(input.response !== undefined
-        ? { response: this.safe(input.response), responseSummary: summarize(input.response) }
-        : {}),
+      ...(input.response !== undefined ? { response: this.safe(input.response) } : {}),
+      ...(summary !== undefined ? { responseSummary: summary } : {}),
       ...(input.durationMs !== undefined ? { durationMs: input.durationMs } : {}),
       ...(input.errorCode ? { errorCode: input.errorCode } : {}),
       ...(input.message ? { message: input.message } : {}),

@@ -75,6 +75,33 @@ describe('TraceRecorder', () => {
     expect(event?.responseSummary).toBeDefined();
   });
 
+  it('keeps a caller-supplied responseSummary without a full response', () => {
+    // The pipeline records only the shape of a 120-item menu; that summary used
+    // to be silently dropped because `toolCall` did not accept it.
+    const recorder = new TraceRecorder({ mode: 'replay' });
+    recorder.toolCall({
+      phase: 'menu',
+      tool: 'query-meals',
+      label: '菜单 120 件',
+      responseSummary: { count: 120 },
+    });
+    const event = recorder.finish().events[0];
+    expect(event?.responseSummary).toEqual({ count: 120 });
+    expect(event?.response).toBeUndefined();
+  });
+
+  it('derives a structural summary from the response when none is given', () => {
+    const recorder = new TraceRecorder({ mode: 'replay' });
+    recorder.toolCall({
+      phase: 'menu',
+      tool: 'query-nearby-stores',
+      response: { stores: [{ storeCode: '1950556' }] },
+    });
+    const summary = recorder.finish().events[0]?.responseSummary as Record<string, unknown>;
+    expect(summary).toBeDefined();
+    expect(JSON.stringify(summary)).toContain('stores');
+  });
+
   it('records diagnostics with their error code', () => {
     const recorder = new TraceRecorder({ mode: 'live' });
     recorder.diagnostic('check', 'E101', '预算必须为正数', '4:11');

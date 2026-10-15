@@ -2,94 +2,104 @@
 
 import type { BuildResult } from '@mealscript/verifier/pipeline';
 
-const STATUS_STYLE: Record<string, { label: string; className: string }> = {
-  BUILD_PASSED: { label: 'BUILD_PASSED', className: 'border-emerald-500/40 bg-emerald-500/10 text-emerald-300' },
-  REPLAY_RESULT: { label: 'REPLAY_RESULT', className: 'border-gold-500/40 bg-gold-500/10 text-gold-300' },
-  NO_VERIFIED_MATCH: { label: 'NO_VERIFIED_MATCH', className: 'border-amber-500/40 bg-amber-500/10 text-amber-300' },
-  COMPILATION_ERROR: { label: 'COMPILATION_ERROR', className: 'border-red-500/40 bg-red-500/10 text-red-300' },
-  MCP_ERROR: { label: 'MCP_ERROR', className: 'border-red-500/40 bg-red-500/10 text-red-300' },
+const STATUS_STYLE: Record<string, string> = {
+  BUILD_PASSED: 'border-ok-line bg-ok-bg text-ok-fg',
+  REPLAY_RESULT: 'border-warn-line bg-warn-bg text-warn-fg',
+  NO_VERIFIED_MATCH: 'border-warn-line bg-warn-bg text-warn-fg',
+  COMPILATION_ERROR: 'border-err-line bg-err-bg text-[#ffb4a2]',
+  MCP_ERROR: 'border-err-line bg-err-bg text-[#ffb4a2]',
 };
 
 export default function ResultCard({ result }: { result: BuildResult | null }) {
   if (!result) {
-    return (
-      <div className="rounded-xl border border-ink-700 bg-ink-850 p-4 text-sm text-[#6b6b75]">
-        点击 Compile 后，这里会显示结果卡。
-      </div>
-    );
+    return <p className="py-2 text-sm text-fg-3">点击 Compile 后，这里会显示 Build Report。</p>;
   }
 
-  const badge = STATUS_STYLE[result.status] ?? {
-    label: result.status,
-    className: 'border-ink-600 bg-ink-800 text-[#c9c9d1]',
-  };
+  const badge = STATUS_STYLE[result.status] ?? 'border-ink-600 bg-ink-850 text-fg-2';
   const best = result.verified[0];
 
   return (
-    <div className="flex flex-col gap-3">
-      <div className="flex items-center gap-2">
-        <span className={`rounded-md border px-2 py-1 font-mono text-[11px] ${badge.className}`}>{badge.label}</span>
+    <div className="flex flex-col">
+      <div className="mb-3.5 flex items-center gap-2">
+        <span className={`rounded-lg border px-2.5 py-1 font-mono text-[13px] ${badge}`}>{result.status}</span>
         <span
-          className={`rounded-md border px-2 py-1 font-mono text-[11px] ${
-            result.mode === 'live'
-              ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-300'
-              : 'border-gold-500/40 bg-gold-500/10 text-gold-300'
+          className={`rounded-lg border px-2.5 py-1 font-mono text-[13px] ${
+            result.mode === 'live' ? 'border-ok-line bg-ok-bg text-ok-fg' : 'border-ink-600 bg-ink-850 text-fg-2'
           }`}
         >
-          {result.mode === 'live' ? 'LIVE · 真实 MCP' : 'REPLAY · 脱敏样例'}
+          {result.mode === 'live' ? 'LIVE' : 'REPLAY'}
         </span>
       </div>
 
-      {result.message ? (
-        <p className="rounded-lg border border-ink-700 bg-ink-850 p-3 text-sm text-[#c9c9d1]">{result.message}</p>
+      {result.status === 'COMPILATION_ERROR' ? (
+        <p className="py-2 text-sm text-fg-3">编译在第一步就失败了，因此没有发起任何 MCP 调用。</p>
       ) : null}
 
-      {result.errorCode ? (
-        <p className="font-mono text-xs text-red-300">{result.errorCode}</p>
+      {result.message ? <p className="py-2 text-sm text-fg-3">{result.message}</p> : null}
+
+      {result.store ? (
+        <dl className="mb-3.5 grid grid-cols-[max-content_1fr] gap-x-[18px] gap-y-2 text-sm">
+          <dt className="text-fg-3">门店</dt>
+          <dd className="m-0">{result.store.storeName}</dd>
+          <dt className="text-fg-3">门店编号</dt>
+          <dd className="m-0 font-mono">{result.store.storeCode}</dd>
+          {result.menuSize != null ? (
+            <>
+              <dt className="text-fg-3">可售商品</dt>
+              <dd className="m-0">{result.menuSize} 件</dd>
+            </>
+          ) : null}
+          {result.budgetCny != null ? (
+            <>
+              <dt className="text-fg-3">预算</dt>
+              <dd className="m-0">≤ ¥{result.budgetCny.toFixed(2)}</dd>
+            </>
+          ) : null}
+          {result.stats ? (
+            <>
+              <dt className="text-fg-3">组合枚举</dt>
+              <dd className="m-0">{result.stats.enumerated} 个</dd>
+            </>
+          ) : null}
+        </dl>
       ) : null}
 
       {best ? (
-        <div className="rounded-xl border border-ink-700 bg-ink-850 p-4">
-          <div className="flex items-baseline justify-between">
-            <span className="text-xs text-[#6b6b75]">官方结算价</span>
-            <span className="font-mono text-2xl text-gold-300">¥{best.totalCny.toFixed(2)}</span>
-          </div>
-          <div className="mt-1 flex items-baseline justify-between text-xs text-[#6b6b75]">
-            <span>预算 ¥{result.budgetCny?.toFixed(2) ?? '-'}</span>
-            <span className="text-emerald-300">剩余 ¥{best.budgetRemainingCny.toFixed(2)}</span>
-          </div>
-
-          <ul className="mt-3 flex flex-col gap-1 border-t border-ink-700 pt-3">
+        <>
+          <div className="mb-3.5 overflow-hidden rounded-[10px] border border-ink-700">
             {best.lines.map((line) => (
-              <li key={line.productCode} className="flex items-center justify-between text-sm">
-                <span>
-                  {line.productName}
-                  <span className="ml-2 font-mono text-[11px] text-[#6b6b75]">×{line.quantity}</span>
-                </span>
-                <span className="font-mono text-xs text-[#c9c9d1]">¥{line.subtotalCny.toFixed(2)}</span>
-              </li>
+              <div
+                key={line.productCode}
+                className="flex items-center gap-2.5 border-b border-ink-700 px-3 py-2.5 text-sm last:border-b-0"
+              >
+                <span className="min-w-0 flex-1 truncate">{line.productName}</span>
+                <span className="ml-auto font-mono text-xs text-fg-3">#{line.productCode}</span>
+                <span className="w-[78px] shrink-0 text-right font-mono">¥{line.subtotalCny.toFixed(2)}</span>
+              </div>
             ))}
-          </ul>
+          </div>
 
-          {result.store ? (
-            <p className="mt-3 border-t border-ink-700 pt-3 text-xs text-[#6b6b75]">
-              门店：{result.store.storeName}
-              <span className="ml-2 font-mono">{result.store.storeCode}</span>
-            </p>
-          ) : null}
+          <div className="mb-3 flex items-baseline gap-3 rounded-[10px] border border-warn-line bg-warn-bg px-4 py-3.5">
+            <span className="font-mono text-[28px] font-semibold leading-none text-gold-300">
+              ¥{best.totalCny.toFixed(2)}
+            </span>
+            <span className="text-[13px] text-fg-2">
+              官方结算价 · 预算剩余 ¥{best.budgetRemainingCny.toFixed(2)}
+            </span>
+          </div>
 
-          <p className="mt-2 text-[11px] text-[#6b6b75]">
-            校验工具：{best.evidence.tool} · {new Date(best.evidence.verifiedAt).toLocaleString('zh-CN')}
-            {best.evidence.simulated ? ' · 该价格来自 Replay 模拟，非实时核验' : ''}
+          <p className="text-xs leading-relaxed text-fg-3">
+            证据：<code className="font-mono text-fg-2">{best.evidence.tool}</code> · 校验于{' '}
+            <code className="font-mono text-fg-2">{new Date(best.evidence.verifiedAt).toLocaleString('zh-CN')}</code>
+            {best.evidence.simulated ? <span className="text-warn-fg"> · 脱敏样例模拟价，非实时查询</span> : null}
           </p>
-        </div>
+        </>
+      ) : result.status !== 'COMPILATION_ERROR' ? (
+        <p className="py-2 text-sm text-fg-3">没有产出通过官方价格校验的组合。</p>
       ) : null}
 
       {result.searchScope ? (
-        <p className="rounded-lg border border-ink-700 bg-ink-900 p-3 text-[11px] leading-relaxed text-[#8a8a94]">
-          搜索范围：{result.searchScope}
-          {result.stats ? ` · 枚举 ${result.stats.enumerated} 个组合` : ''}
-        </p>
+        <p className="mt-2.5 text-xs leading-relaxed text-fg-3">搜索范围：{result.searchScope}</p>
       ) : null}
     </div>
   );

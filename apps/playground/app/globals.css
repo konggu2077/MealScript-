@@ -8,8 +8,9 @@
 
 html,
 body {
-  background: #0b0b0d;
-  color: #e7e7ea;
+  background: #0b0d11;
+  color: #e8eaf0;
+  -webkit-font-smoothing: antialiased;
 }
 
 ::-webkit-scrollbar {
@@ -17,7 +18,7 @@ body {
   height: 8px;
 }
 ::-webkit-scrollbar-thumb {
-  background: #2a2a31;
+  background: #333c4d;
   border-radius: 8px;
 }
 ::-webkit-scrollbar-track {
