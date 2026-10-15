@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="111" height="20" role="img" aria-label="workspace: npm">
+  <rect width="75" height="20" rx="3" fill="#14181f"/>
+  <rect x="72" width="39" height="20" rx="3" fill="#16202c"/>
+  <rect x="72" width="3" height="20" fill="#16202c"/>
+  <rect width="111" height="20" rx="3" fill="none" stroke="#252c38"/>
+  <g fill="#9aa3b2" font-family="Verdana,DejaVu Sans,sans-serif" font-size="11">
+    <text x="37" y="14" text-anchor="middle">workspace</text>
+    <text x="91" y="14" text-anchor="middle" fill="#79c0ff">npm</text>
+  </g>
+</svg>

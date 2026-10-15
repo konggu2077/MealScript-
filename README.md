@@ -1,9 +1,30 @@
 ![MealScript](docs/banner.svg)
 
+<p align="left">
+  <img alt="node &gt;= 20" src="docs/badges/node.svg">
+  <img alt="workspace npm" src="docs/badges/workspace.svg">
+  <img alt="tests 82 passed" src="docs/badges/tests.svg">
+  <img alt="license MIT" src="docs/badges/license.svg">
+</p>
+
 ### 立刻试试
 
 - **在线 Demo**：https://konggu2077.github.io/MealScript-/dist/mealscript.html —— 不用装任何东西，打开即用，断网也能跑
-- **下载单文件网页**：[`dist/mealscript.html`](dist/mealscript.html)（254 KB，双击即开，CSS/JS 全内联、零外部请求）
+  （仓库设置里开启 Pages：`Settings → Pages → Deploy from a branch → main / (root)` 后生效）
+- **下载单文件网页**：[`dist/mealscript.html`](dist/mealscript.html)（256 KB，双击即开，CSS/JS 全内联、零外部请求）
+
+### 目录
+
+- [界面一览](#界面一览)
+- [这不是一个聊天点餐助手](#这不是一个聊天点餐助手)
+- [快速开始](#快速开始)
+- [目录结构](#目录结构)
+- [DSL v0.1 语法](#dsl-v01-语法)
+- [真实性规则（我们的红线）](#真实性规则我们的红线)
+- [Live 与 Replay 的区别](#live-与-replay-的区别)
+- [测试](#测试)
+- [与官方标准的偏差说明（如实记录）](#与官方标准的偏差说明如实记录)
+- [免责声明](#免责声明)
 
 > Code Your Meal. Compile Your Hunger.
 
@@ -88,7 +109,7 @@ npm run dev          # → http://localhost:3000
 ### 单文件离线版（双击即开，无需安装任何东西）
 
 ```bash
-npm run build:single   # → dist/mealscript.html（约 254 KB）
+npm run build:single   # → dist/mealscript.html（约 256 KB）
 ```
 
 `dist/mealscript.html` 是一个**自包含的单文件网页**：CSS 与 JS 全部内联，**零外部请求、零凭据、离线可用**。
@@ -156,11 +177,16 @@ mealscript/
 | 代码 | 名称 | 触发条件 |
 |---|---|---|
 | E001 | SyntaxError | 语法无效 / 缺分号 / 非法 Token / 缺必需字段 |
-| E101–E105 | SemanticConstraintError | 非法预算、取餐模式、数量范围、优化目标、执行方式 |
+| E101 | SemanticConstraintError | 预算非法：非正数、非 `CNY`、缺 `<=` |
+| E102 | SemanticConstraintError | 取餐模式非法：v0.1 仅 `pickup` |
+| E103 | SemanticConstraintError | 数量范围非法：超出 1–3，或 `min_items > max_items` |
+| E104 | SemanticConstraintError | 优化目标非法：v0.1 仅 `min(total_price)` |
+| E105 | SemanticConstraintError | 执行方式非法：v0.1 仅 `dry_run` |
 | E211 | RequiredProductNotFound | 当前菜单中无匹配商品 |
 | E220 | NoVerifiedCandidate | 已验证候选中无满足全部约束的组合 |
 | E301 | UnavailableProduct | 商品下架或不可售 |
-| E401 / E429 | MCPAuthenticationFailed / MCPRateLimited | Token 失效 / 限流 |
+| E401 | MCPAuthenticationFailed | Token 失效或缺失 |
+| E429 | MCPRateLimited | 触发官方限流 |
 | E500 | PriceVerificationFailed | 官方价格计算失败或不可验证 |
 
 ### 编译结果状态

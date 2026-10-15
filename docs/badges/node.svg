@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="91" height="20" role="img" aria-label="node: &gt;= 20">
+  <rect width="42" height="20" rx="3" fill="#14181f"/>
+  <rect x="39" width="52" height="20" rx="3" fill="#241f0d"/>
+  <rect x="39" width="3" height="20" fill="#241f0d"/>
+  <rect width="91" height="20" rx="3" fill="none" stroke="#252c38"/>
+  <g fill="#9aa3b2" font-family="Verdana,DejaVu Sans,sans-serif" font-size="11">
+    <text x="21" y="14" text-anchor="middle">node</text>
+    <text x="65" y="14" text-anchor="middle" fill="#f5c242">&gt;= 20</text>
+  </g>
+</svg>
