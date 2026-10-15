@@ -1,0 +1,39 @@
+{
+  "id": "replay-failure-auth",
+  "mode": "replay",
+  "capturedAt": "2026-10-15T22:00:14+08:00",
+  "redacted": true,
+  "note": "Failure case for acceptance tests T06 (401 / 429 / timeout / empty data). This fixture deliberately makes every read tool fail so the pipeline's 'never fake a success' behaviour can be exercised offline. No real response body is stored here.",
+  "source": {
+    "city": "北京市",
+    "keyword": "海淀区五道口",
+    "beType": 1,
+    "orderType": 1
+  },
+  "tools": {
+    "query-nearby-stores": {
+      "error": {
+        "code": "E401",
+        "message": "MCP 鉴权失败：Token 错误或过期（HTTP 401）。请到 https://open.mcd.cn/mcp 重新获取 Token 并更新 .env 中的 MCD_MCP_TOKEN。"
+      }
+    },
+    "query-meals": {
+      "error": {
+        "code": "E401",
+        "message": "MCP 鉴权失败：Token 错误或过期（HTTP 401）。"
+      }
+    },
+    "query-meal-detail": {
+      "error": {
+        "code": "E401",
+        "message": "MCP 鉴权失败：Token 错误或过期（HTTP 401）。"
+      }
+    },
+    "calculate-price": {
+      "error": {
+        "code": "E401",
+        "message": "MCP 鉴权失败：Token 错误或过期（HTTP 401）。"
+      }
+    }
+  }
+}

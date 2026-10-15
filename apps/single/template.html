@@ -1,0 +1,351 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MealScript · 麦门编译器</title>
+<style>
+:root{
+  --bg:#0b0d11; --panel:#14181f; --panel2:#1a1f28; --line:#252c38; --line2:#333c4d;
+  --fg:#e8eaf0; --fg2:#9aa3b2; --fg3:#6b7484;
+  --gold:#f5c242; --red:#ff6b6b; --green:#4ade80; --blue:#79c0ff; --teal:#56d4dd;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:14px;line-height:1.6;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1400px;margin:0 auto;padding:20px 20px 48px}
+header{display:flex;flex-wrap:wrap;align-items:center;gap:12px;padding:14px 0 18px;border-bottom:1px solid var(--line);margin-bottom:18px}
+.logo{font-size:20px;font-weight:600;letter-spacing:.3px}
+.logo em{font-style:normal;color:var(--gold)}
+.tagline{color:var(--fg2);font-size:13px}
+.badges{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
+.badge{font-size:12px;padding:4px 10px;border-radius:999px;border:1px solid var(--line2);color:var(--fg2);background:var(--panel)}
+.badge.gold{color:var(--gold);border-color:rgba(245,194,66,.45);background:rgba(245,194,66,.08)}
+.badge.warn{color:#ffb4a2;border-color:rgba(255,107,107,.4);background:rgba(255,107,107,.08)}
+.grid{display:grid;grid-template-columns:minmax(0,1.15fr) 210px minmax(0,1fr);gap:16px;align-items:start}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.ph{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--line);font-size:13px;color:var(--fg2)}
+.ph b{color:var(--fg);font-weight:600}
+.ph .sp{margin-left:auto;font-size:12px;color:var(--fg3)}
+.pb{padding:14px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font-size:12px;padding:5px 10px;border-radius:8px;border:1px solid var(--line2);background:var(--panel2);color:var(--fg2);cursor:pointer;font-family:var(--sans)}
+.chip:hover{border-color:var(--gold);color:var(--gold)}
+.chip.on{background:rgba(245,194,66,.12);border-color:var(--gold);color:var(--gold)}
+.editor{position:relative;height:330px;margin-top:12px;border:1px solid var(--line);border-radius:10px;background:#0e1116;overflow:hidden}
+.editor pre,.editor textarea{margin:0;padding:12px 14px;font-family:var(--mono);font-size:13px;line-height:1.7;tab-size:2;white-space:pre;word-wrap:normal;border:0}
+.editor pre{position:absolute;inset:0;overflow:auto;pointer-events:none;color:var(--fg)}
+.editor textarea{position:absolute;inset:0;width:100%;height:100%;resize:none;background:transparent;color:transparent;caret-color:var(--gold);outline:0;overflow:auto}
+.editor textarea::selection{background:rgba(245,194,66,.25)}
+.k{color:var(--gold)}.s{color:var(--green)}.n{color:var(--blue)}.c{color:#5d6673;font-style:italic}.p{color:#8b949e}.u{color:var(--teal)}
+.actions{display:flex;align-items:center;gap:10px;margin-top:12px}
+button.run{font-family:var(--sans);font-size:14px;font-weight:600;padding:9px 20px;border-radius:9px;border:1px solid var(--gold);background:var(--gold);color:#1a1300;cursor:pointer}
+button.run:hover{filter:brightness(1.08)}
+button.run:disabled{opacity:.5;cursor:default}
+.hint{font-size:12px;color:var(--fg3)}
+.stages{display:flex;flex-direction:column;gap:8px;padding:14px}
+.stage{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:9px;border:1px solid var(--line);background:var(--panel2);font-size:13px}
+.stage .dot{width:9px;height:9px;border-radius:50%;background:#3a4250;flex:none}
+.stage.ok{border-color:rgba(74,222,128,.35)}.stage.ok .dot{background:var(--green)}
+.stage.error{border-color:rgba(255,107,107,.45)}.stage.error .dot{background:var(--red)}
+.stage.running{border-color:rgba(245,194,66,.45)}.stage.running .dot{background:var(--gold)}
+.stage .nm{font-weight:600}
+.stage .ms{margin-left:auto;font-size:11px;color:var(--fg3);font-family:var(--mono)}
+.stage .st{font-size:11px;color:var(--fg3)}
+.status{display:flex;align-items:center;gap:8px;margin-bottom:12px}
+.status .pill{font-family:var(--mono);font-size:12px;padding:5px 10px;border-radius:8px;border:1px solid var(--line2);color:var(--fg2)}
+.status .pill.pass{color:var(--green);border-color:rgba(74,222,128,.4);background:rgba(74,222,128,.08)}
+.status .pill.fail{color:var(--red);border-color:rgba(255,107,107,.4);background:rgba(255,107,107,.08)}
+.status .pill.warn{color:var(--gold);border-color:rgba(245,194,66,.4);background:rgba(245,194,66,.08)}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:6px 12px;font-size:13px;margin-bottom:12px}
+.kv dt{color:var(--fg3)}
+.kv dd{margin:0;color:var(--fg)}
+.lines{border:1px solid var(--line);border-radius:10px;overflow:hidden;margin-bottom:12px}
+.line{display:flex;align-items:center;gap:10px;padding:9px 12px;border-bottom:1px solid var(--line);font-size:13px}
+.line:last-child{border-bottom:0}
+.line .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.line .code{font-family:var(--mono);font-size:11px;color:var(--fg3)}
+.line .amt{font-family:var(--mono);color:var(--fg)}
+.total{display:flex;align-items:baseline;gap:10px;padding:12px;border:1px solid rgba(245,194,66,.35);border-radius:10px;background:rgba(245,194,66,.06);margin-bottom:12px}
+.total .big{font-size:26px;font-weight:600;color:var(--gold);font-family:var(--mono)}
+.total .sub{font-size:12px;color:var(--fg2)}
+.evidence{font-size:12px;color:var(--fg3);line-height:1.7}
+.evidence code{font-family:var(--mono);color:var(--fg2)}
+.empty{color:var(--fg3);font-size:13px;padding:8px 0}
+.diag{border-left:3px solid var(--red);background:rgba(255,107,107,.06);padding:9px 12px;border-radius:0 8px 8px 0;margin-bottom:8px;font-size:13px}
+.diag .top{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
+.diag .cd{font-family:var(--mono);color:var(--red);font-size:12px}
+.diag .at{font-family:var(--mono);color:var(--fg3);font-size:12px}
+.diag .nm{color:var(--fg2);font-size:12px}
+.diag .hint{margin-top:4px;color:var(--gold);font-size:12px}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+th{color:var(--fg3);font-weight:500;white-space:nowrap}
+td.mono{font-family:var(--mono);color:var(--fg2)}
+td .ok{color:var(--green)}td .err{color:var(--red)}td .run{color:var(--gold)}
+.bottom{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.25fr);gap:16px;margin-top:16px}
+.scroll{max-height:280px;overflow:auto}
+footer{margin-top:22px;padding-top:14px;border-top:1px solid var(--line);color:var(--fg3);font-size:12px;line-height:1.8}
+@media (max-width:1080px){
+  .grid{grid-template-columns:1fr}
+  .bottom{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div class="logo">Meal<em>Script</em></div>
+  <div class="tagline">把「吃什么」写成一门语言，再把它编译成一份有官方价格证据的方案</div>
+  <div class="badges">
+    <span class="badge gold" id="modeBadge">REPLAY</span>
+    <span class="badge">v0.1 · dry_run only</span>
+    <span class="badge warn">非麦当劳官方产品 · 独立参赛作品</span>
+  </div>
+</header>
+
+<div class="grid">
+  <section class="panel">
+    <div class="ph"><b>源码</b><span>MealScript v0.1</span><span class="sp">Ctrl + Enter 编译</span></div>
+    <div class="pb">
+      <div class="chips" id="chips"></div>
+      <div class="editor">
+        <pre aria-hidden="true"><code id="hl"></code></pre>
+        <textarea id="src" spellcheck="false" autocomplete="off"></textarea>
+      </div>
+      <div class="actions">
+        <button class="run" id="run">Compile</button>
+        <span class="hint" id="runHint"></span>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="ph"><b>执行阶段</b></div>
+    <div class="stages" id="stages"></div>
+  </section>
+
+  <section class="panel">
+    <div class="ph"><b>Build Report</b><span class="sp" id="buildId"></span></div>
+    <div class="pb" id="result"></div>
+  </section>
+</div>
+
+<div class="bottom">
+  <section class="panel">
+    <div class="ph"><b>Diagnostics</b><span class="sp" id="diagCount"></span></div>
+    <div class="pb scroll" id="diags"></div>
+  </section>
+  <section class="panel">
+    <div class="ph"><b>Trace</b><span class="sp">已脱敏 · 不含 Token 与个人信息</span></div>
+    <div class="pb scroll" id="trace"></div>
+  </section>
+</div>
+
+<footer>
+  <div>本页为 <b>离线 Replay 版</b>：编译器、语义检查、组合搜索、价格校验全部在浏览器里真实运行；门店与价格取自一次真实会话的<b>脱敏录制样例</b>，因此状态永远是 <code>REPLAY_RESULT</code>，绝不会标成 <code>BUILD_PASSED</code>。</div>
+  <div>实时（Live）链路在仓库中通过 <code>MCD_MCP_TOKEN</code> 直连官方 MCP；本页不含任何凭据，也不调用下单、付款、领券等写操作。</div>
+</footer>
+</div>
+
+<script>{{BUNDLE}}</script>
+<script>
+(function(){
+  var EXAMPLES=[
+    {id:'budget',label:'经典 · 35 元要汉堡不要咖啡',src:'meal lunch {\n  location: "北京市海淀区五道口";\n  mode: pickup;\n  budget: <= 35 CNY;\n  require_keyword: "汉堡";\n  exclude_keywords: ["咖啡"];\n  min_items: 1;\n  max_items: 2;\n  optimize: min(total_price);\n  execution: dry_run;\n}'},
+    {id:'combo',label:'两件套 · 汉堡 + 小食',src:'meal combo {\n  location: "北京市海淀区五道口";\n  mode: pickup;\n  budget: <= 30 CNY;\n  require_keyword: "汉堡";\n  exclude_keywords: ["咖啡"];\n  min_items: 2;\n  max_items: 2;\n  optimize: min(total_price);\n  execution: dry_run;\n}'},
+    {id:'syntax',label:'故意写错 · 漏分号 E001',src:'meal lunch {\n  location: "北京市海淀区五道口";\n  mode: pickup;\n  budget: <= 35 CNY\n  require_keyword: "汉堡";\n  optimize: min(total_price);\n  execution: dry_run;\n}'},
+    {id:'semantic',label:'故意写错 · 负预算 + 外送 E101/E102',src:'meal lunch {\n  location: "北京市海淀区五道口";\n  mode: delivery;\n  budget: <= -10 CNY;\n  require_keyword: "汉堡";\n  optimize: min(total_price);\n  execution: dry_run;\n}'},
+    {id:'impossible',label:'预算过低 · 无可行组合 E220',src:'meal tiny {\n  location: "北京市海淀区五道口";\n  mode: pickup;\n  budget: <= 3 CNY;\n  require_keyword: "汉堡";\n  min_items: 1;\n  max_items: 1;\n  optimize: min(total_price);\n  execution: dry_run;\n}'}
+  ];
+  var PHASES=['parse','check','menu','optimize','price','result'];
+  var PHASE_CN={parse:'词法与语法分析',check:'语义检查与 IR',menu:'查询门店与菜单',optimize:'有界组合搜索',price:'官方价格校验',result:'生成 Build Report'};
+  var STATUS_CN={BUILD_PASSED:'BUILD_PASSED',NO_VERIFIED_MATCH:'NO_VERIFIED_MATCH',COMPILATION_ERROR:'COMPILATION_ERROR',MCP_ERROR:'MCP_ERROR',REPLAY_RESULT:'REPLAY_RESULT'};
+  var MS=window.MealScript;
+  var ta=document.getElementById('src'),hl=document.getElementById('hl');
+  var chips=document.getElementById('chips'),stagesEl=document.getElementById('stages');
+  var resultEl=document.getElementById('result'),diagsEl=document.getElementById('diags'),traceEl=document.getElementById('trace');
+  var runBtn=document.getElementById('run'),runHint=document.getElementById('runHint');
+  var buildIdEl=document.getElementById('buildId'),diagCount=document.getElementById('diagCount');
+  var current='budget';
+
+  function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+  var KW={meal:1,location:1,mode:1,budget:1,require_keyword:1,exclude_keywords:1,min_items:1,max_items:1,optimize:1,execution:1};
+  function highlight(src){
+    var re=/(\/\/[^\n]*)|("(?:[^"\\\n]|\\.)*")|(\b\d+(?:\.\d+)?\b)|([A-Za-z_][A-Za-z0-9_]*)|([{}()\[\];:,.<>=])/g;
+    var out='',last=0,m;
+    while((m=re.exec(src))){
+      out+=esc(src.slice(last,m.index));
+      var t=m[0];
+      if(m[1])out+='<span class="c">'+esc(t)+'</span>';
+      else if(m[2])out+='<span class="s">'+esc(t)+'</span>';
+      else if(m[3])out+='<span class="n">'+esc(t)+'</span>';
+      else if(m[4])out+=(KW[t]?'<span class="k">'+t+'</span>':(t==='CNY'?'<span class="u">'+t+'</span>':'<span>'+esc(t)+'</span>'));
+      else out+='<span class="p">'+esc(t)+'</span>';
+      last=m.index+t.length;
+    }
+    out+=esc(src.slice(last));
+    return out+'\n';
+  }
+  function sync(){hl.innerHTML=highlight(ta.value);hl.parentNode.scrollTop=ta.scrollTop;hl.parentNode.scrollLeft=ta.scrollLeft;}
+
+  EXAMPLES.forEach(function(ex){
+    var b=document.createElement('button');
+    b.className='chip'+(ex.id===current?' on':'');
+    b.textContent=ex.label;
+    b.onclick=function(){
+      current=ex.id;
+      Array.prototype.forEach.call(chips.children,function(c){c.className='chip';});
+      b.className='chip on';
+      ta.value=ex.src;sync();build();
+    };
+    chips.appendChild(b);
+  });
+
+  function stageState(trace,phase){
+    var st='pending',label='',ms=null;
+    (trace.events||[]).forEach(function(e){
+      if(e.phase!==phase)return;
+      if(e.kind==='stage'){st=e.status;label=e.label;if(e.durationMs!=null)ms=e.durationMs;}
+      else if(e.kind==='diagnostic'&&st!=='error'){st='error';}
+      else if(e.kind==='tool_call'&&e.status==='error'){st='error';}
+    });
+    return {status:st,label:label,ms:ms};
+  }
+  function renderStages(trace){
+    stagesEl.innerHTML='';
+    PHASES.forEach(function(p){
+      var s=stageState(trace,p);
+      var d=document.createElement('div');
+      d.className='stage'+(s.status==='ok'||s.status==='error'||s.status==='running'?' '+s.status:'');
+      var nm=document.createElement('span');nm.className='nm';nm.textContent=p.charAt(0).toUpperCase()+p.slice(1);
+      var cn=document.createElement('span');cn.className='st';cn.textContent=PHASE_CN[p];
+      var ms=document.createElement('span');ms.className='ms';
+      ms.textContent=s.ms!=null?s.ms+'ms':(s.status==='pending'?'—':'');
+      d.appendChild(document.createElement('span')).className='dot';
+      d.appendChild(nm);d.appendChild(cn);d.appendChild(ms);
+      stagesEl.appendChild(d);
+    });
+  }
+  function pill(cls,txt){var s=document.createElement('span');s.className='pill '+cls;s.textContent=txt;return s;}
+  function renderResult(r){
+    resultEl.innerHTML='';
+    buildIdEl.textContent=r.trace&&r.trace.id?r.trace.id.slice(0,8):'';
+    var st=document.createElement('div');st.className='status';
+    var cls=r.status==='BUILD_PASSED'?'pass':(r.status==='REPLAY_RESULT'?'warn':'fail');
+    st.appendChild(pill(cls,STATUS_CN[r.status]||r.status));
+    st.appendChild(pill('',r.mode==='live'?'LIVE':'REPLAY'));
+    resultEl.appendChild(st);
+
+    if(r.status==='COMPILATION_ERROR'){
+      var e1=document.createElement('div');e1.className='empty';
+      e1.textContent='编译在第一步就失败了，因此没有发起任何 MCP 调用。';
+      resultEl.appendChild(e1);return;
+    }
+    if(r.message){
+      var em=document.createElement('div');em.className='empty';em.textContent=r.message+(r.errorCode?'（'+r.errorCode+'）':'');
+      resultEl.appendChild(em);
+    }
+    if(r.store){
+      var dl=document.createElement('dl');dl.className='kv';
+      var rows=[['门店',r.store.storeName],['门店编号',r.store.storeCode]];
+      if(r.menuSize!=null)rows.push(['可售商品',r.menuSize+' 件']);
+      if(r.budgetCny!=null)rows.push(['预算','≤ ¥'+r.budgetCny.toFixed(2)]);
+      if(r.stats)rows.push(['组合枚举',r.stats.enumerated+' 个']);
+      rows.forEach(function(pair){
+        var dt=document.createElement('dt');dt.textContent=pair[0];
+        var dd=document.createElement('dd');dd.textContent=pair[1];
+        dl.appendChild(dt);dl.appendChild(dd);
+      });
+      resultEl.appendChild(dl);
+    }
+    if(r.verified&&r.verified.length){
+      r.verified.forEach(function(v){
+        var box=document.createElement('div');box.className='lines';
+        v.lines.forEach(function(l){
+          var row=document.createElement('div');row.className='line';
+          var nm=document.createElement('span');nm.className='nm';nm.textContent=l.productName;
+          var cd=document.createElement('span');cd.className='code';cd.textContent='#'+l.productCode;
+          var am=document.createElement('span');am.className='amt';am.textContent='¥'+l.subtotalCny.toFixed(2);
+          row.appendChild(nm);row.appendChild(cd);row.appendChild(am);box.appendChild(row);
+        });
+        resultEl.appendChild(box);
+        var tot=document.createElement('div');tot.className='total';
+        var big=document.createElement('span');big.className='big';big.textContent='¥'+v.totalCny.toFixed(2);
+        var sub=document.createElement('span');sub.className='sub';
+        sub.textContent='官方结算价 · 预算剩余 ¥'+v.budgetRemainingCny.toFixed(2);
+        tot.appendChild(big);tot.appendChild(sub);resultEl.appendChild(tot);
+        var ev=document.createElement('div');ev.className='evidence';
+        ev.innerHTML='证据：<code>'+v.evidence.tool+'</code> · 校验于 <code>'+esc(v.evidence.verifiedAt)+'</code>'+(v.evidence.simulated?' · <span style="color:var(--gold)">脱敏样例模拟价，非实时查询</span>':'');
+        resultEl.appendChild(ev);
+      });
+    }else if(r.status!=='COMPILATION_ERROR'){
+      var no=document.createElement('div');no.className='empty';
+      no.textContent='没有产出通过官方价格校验的组合。';
+      resultEl.appendChild(no);
+    }
+    if(r.searchScope){
+      var sc=document.createElement('div');sc.className='evidence';sc.style.marginTop='10px';
+      sc.textContent='搜索范围：'+r.searchScope;resultEl.appendChild(sc);
+    }
+  }
+  function renderDiags(ds){
+    diagsEl.innerHTML='';
+    diagCount.textContent=ds&&ds.length?ds.length+' 条':'0 条';
+    if(!ds||!ds.length){var e=document.createElement('div');e.className='empty';e.textContent='没有诊断信息。';diagsEl.appendChild(e);return;}
+    ds.forEach(function(d){
+      var box=document.createElement('div');box.className='diag';
+      var top=document.createElement('div');top.className='top';
+      var cd=document.createElement('span');cd.className='cd';cd.textContent=d.code;
+      var at=document.createElement('span');at.className='at';at.textContent=d.line+':'+d.column;
+      var nm=document.createElement('span');nm.className='nm';nm.textContent=d.name;
+      top.appendChild(cd);top.appendChild(at);top.appendChild(nm);box.appendChild(top);
+      var msg=document.createElement('div');msg.textContent=d.message;box.appendChild(msg);
+      if(d.hint){var h=document.createElement('div');h.className='hint';h.textContent='↳ '+d.hint;box.appendChild(h);}
+      diagsEl.appendChild(box);
+    });
+  }
+  function renderTrace(trace){
+    traceEl.innerHTML='';
+    var t=document.createElement('table');
+    var thead=document.createElement('thead');
+    var hr=document.createElement('tr');
+    ['#','阶段','类型','内容','状态','耗时'].forEach(function(h){var th=document.createElement('th');th.textContent=h;hr.appendChild(th);});
+    thead.appendChild(hr);t.appendChild(thead);
+    var tb=document.createElement('tbody');
+    (trace.events||[]).forEach(function(e){
+      var tr=document.createElement('tr');
+      var cells=[e.seq,e.phase,e.kind==='tool_call'?(e.tool||'tool_call'):e.kind,e.label,e.status,(e.durationMs!=null?e.durationMs+'ms':'')];
+      cells.forEach(function(c,i){
+        var td=document.createElement('td');
+        if(i===0||i===5)td.className='mono';
+        if(i===4){var s=document.createElement('span');s.className=e.status==='ok'?'ok':(e.status==='error'?'err':'run');s.textContent=c;td.appendChild(s);}
+        else td.textContent=c;
+        tr.appendChild(td);
+      });
+      tb.appendChild(tr);
+    });
+    t.appendChild(tb);traceEl.appendChild(t);
+  }
+  var busy=false;
+  function build(){
+    if(busy)return;busy=true;runBtn.disabled=true;runHint.textContent='编译中…';
+    MS.run(ta.value).then(function(r){
+      renderStages(r.trace);renderResult(r);renderDiags(r.diagnostics);renderTrace(r.trace);
+      document.getElementById('modeBadge').textContent=r.mode==='live'?'LIVE':'REPLAY';
+      runHint.textContent='完成 · '+(r.trace.events?r.trace.events.length:0)+' 个 trace 事件';
+    }).catch(function(err){
+      runHint.textContent='运行时错误：'+(err&&err.message?err.message:String(err));
+    }).then(function(){busy=false;runBtn.disabled=false;});
+  }
+  runBtn.onclick=build;
+  ta.addEventListener('input',sync);
+  ta.addEventListener('scroll',function(){hl.parentNode.scrollTop=ta.scrollTop;hl.parentNode.scrollLeft=ta.scrollLeft;});
+  ta.addEventListener('keydown',function(e){if((e.ctrlKey||e.metaKey)&&e.key==='Enter'){e.preventDefault();build();}});
+  ta.value=EXAMPLES[0].src;sync();build();
+})();
+</script>
+</body>
+</html>

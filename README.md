@@ -1,0 +1,215 @@
+# MealScript · 麦门编译器
+
+> Code Your Meal. Compile Your Hunger.
+
+**MealScript 是一门面向真实麦当劳点餐场景的轻量 DSL，配一个真正自己写的编译器。**
+你用可编译的约束语句描述预算与偏好，系统用麦当劳官方 MCP 查询真实门店、真实菜单与真实结算价，产出带调用证据的候选方案，以及能精确到行列的编译诊断。
+
+```
+meal lunch {
+  location: "北京市海淀区五道口";
+  mode: pickup;
+  budget: <= 35 CNY;
+  require_keyword: "汉堡";
+  exclude_keywords: ["咖啡"];
+  min_items: 1;
+  max_items: 2;
+  optimize: min(total_price);
+  execution: dry_run;
+}
+```
+
+→ 编译结果：
+
+```
+REPLAY_RESULT  官方结算价 ¥22.50  预算剩余 ¥12.50
+  麦辣鸡腿汉堡 (1440) × 1   ¥22.50
+  门店：麦当劳北京五道口优盛餐厅 (1950556)
+```
+
+---
+
+## 这不是一个聊天点餐助手
+
+市面上大多数参赛作品是「把需求丢给大模型，让它编一份方案」。MealScript 不一样：
+
+| | 普通 AI 点餐助手 | MealScript |
+|---|---|---|
+| 需求处理 | 提示词转发给大模型 | **自己写的词法/语法分析 → AST → 语义检查 → IR** |
+| 价格来源 | 模型猜测或静态抄录 | **官方 `calculate-price` 真实返回** |
+| 出错时 | 「抱歉，我搞错了」 | **`E101 6:11 预算必须为正数 ↳ 把预算改成正数`** |
+| 数据真假 | 说不清 | **Live / Replay 标签全程可见，永不混用** |
+
+**编译器是手写代码，不是提示词工程。** 这就是为什么它能给出行列级诊断。
+
+---
+
+## 快速开始
+
+```bash
+# 环境：Node.js >= 20（本项目在 Node v22.22.2 上开发）
+npm install
+
+# 1) 不依赖任何凭据，先验证编译器是真的
+npm run compile:cli examples/budget.meal
+
+# 2) 跑全部测试（80 个）
+npm test
+
+# 3) 启动网页 Playground
+npm run dev          # → http://localhost:3000
+```
+
+打开页面后有 5 个内置示例，其中 3 个是**故意写错的**——用来看结构化错误长什么样。
+
+### 单文件离线版（双击即开，无需安装任何东西）
+
+```bash
+npm run build:single   # → dist/mealscript.html（约 254 KB）
+```
+
+`dist/mealscript.html` 是一个**自包含的单文件网页**：CSS 与 JS 全部内联，**零外部请求、零凭据、离线可用**。
+编译器、语义检查、组合搜索、价格校验全部在浏览器里真实运行；门店与价格来自一次真实会话的**脱敏录制样例**，
+所以它的状态恒为 `REPLAY_RESULT`，永远不会伪装成 `BUILD_PASSED`。
+
+它已提交进仓库，也可以直接从 GitHub 下载后双击打开。构建时 `@mealscript/mcp-adapter` 被强制解析为
+`browser.ts`，因此 `node:fs`、MCP SDK 与任何 Token 都不可能进入产物（有测试守着这条边界）。
+
+### 打开 Live 模式（真实 MCP）
+
+```bash
+cp .env.example .env
+# 在 .env 里填入你的 MCD_MCP_TOKEN（https://open.mcd.cn/mcp 获取）
+npm run dev
+# 页面上把 Replay 切成 Live
+```
+
+`.env` 已在 `.gitignore` 中，Token **不会**进入仓库。没有 Token 也能完整体验 Replay 模式。
+
+---
+
+## 目录结构
+
+```
+mealscript/
+├── apps/playground/          Next.js 演示界面（Monaco 编辑器 + 阶段流 + 结果卡 + Trace）
+├── apps/single/              单文件离线版的打包入口与 HTML 模板
+├── build/single.mjs          单文件构建脚本（esbuild IIFE + 内联 + 泄露扫描）
+├── dist/mealscript.html      产物：自包含单文件网页（已提交，可直接双击打开）
+├── packages/
+│   ├── compiler/             Chevrotain 词法/语法分析、AST、语义检查、IR、错误码
+│   ├── mcp-adapter/          官方 MCP 客户端、Zod 校验、归一化、Replay Fixture
+│   ├── optimizer/            有界组合搜索、去重与排序
+│   ├── verifier/             官方价格校验、证据、完整构建流水线
+│   └── trace/                统一执行轨迹与脱敏
+├── examples/                 三份 .meal 示例（1 份正确 + 2 份故意写错）
+├── fixtures/                 脱敏 Replay 案例（成功 / 失败）
+├── tests/                    80 个单元与集成测试
+├── CONTEST_DECLARATION.md    官方参赛声明原文（未改动一个字）
+├── MCP_INTEGRATION.md        实际使用的 MCP Server / Tool / 调用流程
+├── mcp-config.example.json   配置示例（只有占位符）
+└── workbuddy.md              真实 WorkBuddy 开发记录
+```
+
+---
+
+## DSL v0.1 语法
+
+| 字段 | 类型 / 规则 | 违反时的错误码 |
+|---|---|---|
+| `location` | 字符串，门店发现用的位置文本 | 缺失或空 → E001 |
+| `mode` | v0.1 仅 `pickup` | `delivery` → E102 |
+| `budget` | `<= 金额 CNY`，金额为正 | `-10` / `USD` → E101 |
+| `require_keyword` | 非空 UTF-8 文本 | 空串 → E001；无匹配商品 → E211 |
+| `exclude_keywords` | 字符串数组 | 非法数组 → E001 |
+| `min_items` / `max_items` | 整数 1–3 | 越界或 `min > max` → E103 |
+| `optimize` | v0.1 仅 `min(total_price)` | `max(protein)` → E104 |
+| `execution` | v0.1 固定 `dry_run` | `place_order` → E105 |
+
+**省略时的默认值**：`mode=pickup`、`min_items=1`、`max_items=2`、`optimize=min(total_price)`、`execution=dry_run`。
+
+### 错误码
+
+| 代码 | 名称 | 触发条件 |
+|---|---|---|
+| E001 | SyntaxError | 语法无效 / 缺分号 / 非法 Token / 缺必需字段 |
+| E101–E105 | SemanticConstraintError | 非法预算、取餐模式、数量范围、优化目标、执行方式 |
+| E211 | RequiredProductNotFound | 当前菜单中无匹配商品 |
+| E220 | NoVerifiedCandidate | 已验证候选中无满足全部约束的组合 |
+| E301 | UnavailableProduct | 商品下架或不可售 |
+| E401 / E429 | MCPAuthenticationFailed / MCPRateLimited | Token 失效 / 限流 |
+| E500 | PriceVerificationFailed | 官方价格计算失败或不可验证 |
+
+### 编译结果状态
+
+| 状态 | 含义 |
+|---|---|
+| `BUILD_PASSED` | 至少一个候选通过**真实** MCP 价格验证 |
+| `REPLAY_RESULT` | 用的是脱敏样例，**界面上绝不会标成 Live** |
+| `NO_VERIFIED_MATCH` | 已验证范围内无结果（不宣称全局不可行） |
+| `COMPILATION_ERROR` | 语法/语义错误，带行列号与修复建议 |
+| `MCP_ERROR` | 鉴权失败 / 限流 / 超时，给真实错误类型 |
+
+---
+
+## 真实性规则（我们的红线）
+
+1. **不伪造。** 调用失败就报失败，绝不返回假的「成功订单」。
+2. **不混用。** Replay 结果永远带 `REPLAY` 标签，永远不会拿到 `BUILD_PASSED`。
+3. **不越界。** 适配器硬编码拒绝 `create-order` 等所有写操作，一次都不会调用。
+4. **不泄露。** Token 只存在于本地 `.env`；trace 在写入前强制经过脱敏；门店地址、坐标、商品图片一律不进仓库。
+5. **不吹牛。** 只有穷尽搜索时才允许声称全局最优；搜索范围与枚举数量会如实展示在结果卡上。
+
+---
+
+## Live 与 Replay 的区别
+
+| | Live | Replay |
+|---|---|---|
+| 数据来源 | `https://mcp.mcd.cn` 实时调用 | `fixtures/` 脱敏快照 |
+| 需要 Token | 是 | 否 |
+| 结果状态 | `BUILD_PASSED` | `REPLAY_RESULT` |
+| 价格 | 官方 `calculate-price` 返回 | 按菜单价求和的确定性模拟（标注 `simulated: true`） |
+| 用途 | 真实参赛证据 | 离线演示、CI、给评审复现 |
+
+Replay 的价格模拟**只对非优惠商品成立**（已与真实接口比对验证：单品 ¥22.50 → 2250 分；两件套 ¥27.50 → 2750 分，菜单价求和与官方结算价一致）。优惠/会员价不在模拟范围内，也从不声称覆盖。
+
+---
+
+## 测试
+
+```bash
+npm test
+```
+
+```
+✓ tests/compiler.test.ts       (32 tests)
+✓ tests/optimizer.test.ts      (14 tests)
+✓ tests/trace.test.ts          (12 tests)
+✓ tests/verifier.test.ts       ( 7 tests)
+✓ tests/pipeline.test.ts       (10 tests)
+✓ tests/browser-bundle.test.ts ( 5 tests)
+Test Files  6 passed (6)       Tests  80 passed (80)
+```
+
+覆盖：合法/非法语法、全部错误码、location 拆分、脱敏、有界搜索的边界与上限、官方价 vs 菜单价、Replay 永不冒充 Live、端到端流水线，
+以及**单文件网页的产物本身**——`browser-bundle.test.ts` 会把页面里那段 JS 真的构建出来并在 VM 里执行，断言它不含 `node:` 内建模块、不含 MCP SDK、
+不含 `process.env`，且能跑出真实结果（写操作工具一律不在允许列表里）。
+
+---
+
+## 与官方标准的偏差说明（如实记录）
+
+- **包管理器**：开发任务书建议 pnpm。本机 pnpm 无法创建目录 junction，导致依赖链接不完整，实际改用 **npm workspaces**（Node 22 自带）。代码与目录结构与任务书一致。
+- **Monaco 编辑器**：`@monaco-editor/react` 默认从 CDN 加载 monaco，首次打开需要网络。
+- **`budget` 之外的新语法**：未新增任何任务书之外的字段；`location` 因官方 `query-nearby-stores` 只接受 `city` + `keyword`，在编译器内部做确定性拆分（规则见 `packages/compiler/src/location.ts`，有单测）。
+
+---
+
+## 免责声明
+
+本项目是**独立参赛作品，非麦当劳官方产品**，与麦当劳公司无隶属、授权或背书关系。
+麦当劳的商品名称、价格与门店信息通过官方公开 MCP 服务只读获取，实时结果以麦当劳官方渠道为准。
+仓库内不重新分发任何麦当劳商标或官方图片素材。
+
+依据官方 MCP 接入指南，该服务面向中国大陆使用，官方仓库示例内容限非商业使用范围；本项目仅用于参赛展示，不作商业用途。

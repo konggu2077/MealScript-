@@ -1,0 +1,335 @@
+{
+  "id": "replay-success-wudaokou",
+  "mode": "replay",
+  "capturedAt": "2026-10-15T22:00:14+08:00",
+  "redacted": true,
+  "note": "Real session captured from https://mcp.mcd.cn with an authenticated read-only token. Redacted before committing: store address / distance / coordinates removed, traceId removed, product images removed (brand assets are not redistributed), personal data removed. Menu codes, names and prices are real. — This fixture is REPLAY and must never be presented as a live query.",
+  "source": {
+    "city": "北京市",
+    "keyword": "海淀区五道口",
+    "storeCode": "1950556",
+    "storeName": "麦当劳北京五道口优盛餐厅",
+    "beType": 1,
+    "orderType": 1
+  },
+  "tools": {
+    "query-nearby-stores": {
+      "result": {
+        "success": true,
+        "code": 200,
+        "message": "请求成功",
+        "data": [
+          {
+            "storeCode": "1950556",
+            "storeName": "麦当劳北京五道口优盛餐厅",
+            "businessStatus": true,
+            "businessStartTime": "07:00",
+            "businessEndTime": "23:00",
+            "reservation": true
+          },
+          {
+            "storeCode": "1950091",
+            "storeName": "麦当劳北京华清餐厅",
+            "businessStatus": true,
+            "businessStartTime": "07:00",
+            "businessEndTime": "22:00",
+            "reservation": false
+          },
+          {
+            "storeCode": "1950921",
+            "storeName": "麦当劳北京双清路餐厅",
+            "businessStatus": true,
+            "businessStartTime": "07:00",
+            "businessEndTime": "22:00",
+            "reservation": false
+          }
+        ]
+      }
+    },
+    "query-meals": {
+      "result": {
+        "success": true,
+        "code": 200,
+        "message": "请求成功",
+        "data": {
+          "categories": [
+            { "name": "人气热卖", "meals": [{ "code": "9900004064", "tags": ["爆款"] }] },
+            {
+              "name": "鸡肉汉堡/卷",
+              "meals": [
+                { "code": "1440", "tags": ["单品", "人气经典", "外酥里嫩"] },
+                { "code": "1406", "tags": ["单品", "板烧滋滋", "多汁惹味"] },
+                { "code": "1450", "tags": ["单品"] },
+                { "code": "9900008746", "tags": ["单品", "人气"] },
+                { "code": "521952", "tags": ["上新", "韩式辣椒黄油风味"] },
+                { "code": "521953", "tags": ["上新", "浓郁奶香拉丝芝士"] }
+              ]
+            },
+            {
+              "name": "巨无霸牛鱼肉堡",
+              "meals": [
+                { "code": "1100", "tags": ["单品", "100%纯牛肉"] },
+                { "code": "1120", "tags": ["单品", "100%纯牛肉"] },
+                { "code": "1106", "tags": ["单品", "100%纯牛肉"] },
+                { "code": "521316", "tags": ["单品", "100%纯牛肉", "人气"] },
+                { "code": "4648", "tags": ["单品", "100%纯牛肉"] },
+                { "code": "1600", "tags": ["单品", "麦香鱼系列"] },
+                { "code": "9900003586", "tags": ["单品", "麦香鱼系列"] },
+                { "code": "9900008747", "tags": ["单品", "100%纯牛肉"] }
+              ]
+            },
+            {
+              "name": "安格斯MAX厚牛堡",
+              "meals": [
+                { "code": "511781", "tags": ["单品", "100%安格斯牛肉"] },
+                { "code": "511782", "tags": ["单品", "100%安格斯牛肉"] }
+              ]
+            },
+            {
+              "name": "超值套餐",
+              "meals": [
+                { "code": "9900005456", "tags": ["套餐", "立省10.5元起"] },
+                { "code": "9900005462", "tags": ["套餐", "新升级", "更多汁"] },
+                { "code": "9900005449", "tags": ["套餐", "100%纯牛肉"] },
+                { "code": "9900005453", "tags": ["套餐", "麦香鱼系列"] },
+                { "code": "9900005466", "tags": ["套餐", "100%纯牛肉"] },
+                { "code": "9900015602", "tags": ["大口吃肉好快乐"] },
+                { "code": "9900016057", "tags": ["开心乐园餐", "童年童款"] },
+                { "code": "9900010110", "tags": ["麦金卡"] },
+                { "code": "9900004064", "tags": ["经典精选", "爆款"] }
+              ]
+            },
+            {
+              "name": "小食",
+              "meals": [
+                { "code": "4810", "tags": ["小食"] },
+                { "code": "4437", "tags": ["小食"] },
+                { "code": "6102", "tags": ["小食"] },
+                { "code": "1401", "tags": ["单品", "人气"] },
+                { "code": "1700", "tags": ["单品", "黄金酥脆", "鲜嫩多汁"] },
+                { "code": "520445", "tags": ["单品", "人气"] },
+                { "code": "521156", "tags": ["单品"] },
+                { "code": "514782", "tags": ["小食"] },
+                { "code": "9900016082", "tags": ["上新", "口口酥脆"] },
+                { "code": "9900013304", "tags": ["超值百种组合随心配"] },
+                { "code": "9900015568", "tags": ["超值百种组合随心配"] }
+              ]
+            },
+            {
+              "name": "甜品冰淇淋",
+              "meals": [
+                { "code": "515837", "tags": ["冰淇淋"] },
+                { "code": "521951", "tags": ["上新", "灰焰"] },
+                { "code": "9900008745", "tags": ["冰淇淋"] },
+                { "code": "9900008754", "tags": ["冰淇淋"] },
+                { "code": "521750", "tags": ["冰淇淋"] },
+                { "code": "521950", "tags": ["上新", "蓝莓"] },
+                { "code": "9900008752", "tags": ["派", "第二份优惠"] }
+              ]
+            },
+            {
+              "name": "饮品",
+              "meals": [
+                { "code": "9900008751", "tags": ["冷饮"] },
+                { "code": "3010", "tags": ["冷饮"] },
+                { "code": "515280", "tags": ["冷饮"] },
+                { "code": "3505", "tags": ["热饮"] },
+                { "code": "2430", "tags": ["冷饮"] },
+                { "code": "515520", "tags": ["冷饮"] },
+                { "code": "6362", "tags": ["冷饮"] },
+                { "code": "3755", "tags": ["冷饮"] }
+              ]
+            },
+            {
+              "name": "麦咖啡™",
+              "meals": [
+                { "code": "520689", "tags": ["麦咖啡™咖啡", "鲜萃咖啡"] },
+                { "code": "507389", "tags": ["麦咖啡™咖啡"] },
+                { "code": "507411", "tags": ["限定特惠"] },
+                { "code": "507409", "tags": ["限定特惠", "更奶更浓"] },
+                { "code": "510479", "tags": ["麦咖啡™咖啡"] },
+                { "code": "514851", "tags": ["麦咖啡™咖啡"] },
+                { "code": "515946", "tags": ["限定特惠"] },
+                { "code": "515954", "tags": ["限定特惠"] },
+                { "code": "510488", "tags": ["其他"] },
+                { "code": "507394", "tags": ["其他"] }
+              ]
+            }
+          ],
+          "meals": {
+            "9900004064": { "name": "精选单人餐三件套", "currentPrice": "34.5", "originalPrice": "47", "canWithOrder": false },
+            "1440": { "name": "麦辣鸡腿汉堡", "currentPrice": "22.5", "originalPrice": "22.5", "canWithOrder": false },
+            "1406": { "name": "板烧鸡腿堡", "currentPrice": "23.5", "originalPrice": "23.5", "canWithOrder": false },
+            "1450": { "name": "麦香鸡", "currentPrice": "17", "originalPrice": "17", "canWithOrder": false },
+            "9900008746": { "name": "鸡肉堡单品精选", "currentPrice": "23.5", "originalPrice": "23.5", "canWithOrder": false },
+            "521952": { "name": "龙焰鸡腿堡", "currentPrice": "24", "originalPrice": "24", "canWithOrder": false },
+            "521953": { "name": "龙焰芝士棒鸡腿堡", "currentPrice": "27", "originalPrice": "27", "canWithOrder": false },
+            "1100": { "name": "巨无霸", "currentPrice": "26", "originalPrice": "26", "canWithOrder": false },
+            "1120": { "name": "双层吉士汉堡", "currentPrice": "23", "originalPrice": "23", "canWithOrder": false },
+            "1106": { "name": "培根蔬萃双层牛堡", "currentPrice": "25", "originalPrice": "25", "canWithOrder": false },
+            "521316": { "name": "高达吉士双牛堡", "currentPrice": "22.5", "originalPrice": "22.5", "canWithOrder": false },
+            "4648": { "name": "不素之霸双层牛堡", "currentPrice": "27", "originalPrice": "27", "canWithOrder": false },
+            "1600": { "name": "麦香鱼", "currentPrice": "23", "originalPrice": "23", "canWithOrder": false },
+            "9900003586": { "name": "双层深海鳕鱼堡", "currentPrice": "25", "originalPrice": "25", "canWithOrder": false },
+            "9900008747": { "name": "牛肉堡单品精选", "currentPrice": "14", "originalPrice": "14", "canWithOrder": false },
+            "511781": { "name": "培根安格斯厚牛堡", "currentPrice": "34.5", "originalPrice": "34.5", "canWithOrder": false },
+            "511782": { "name": "芝士安格斯厚牛堡", "currentPrice": "31.5", "originalPrice": "31.5", "canWithOrder": false },
+            "9900005456": { "name": "麦辣鸡腿汉堡三件套", "currentPrice": "33.5", "originalPrice": "47", "canWithOrder": false },
+            "9900005462": { "name": "板烧鸡腿堡三件套", "currentPrice": "34.5", "originalPrice": "48", "canWithOrder": false },
+            "9900005449": { "name": "吉士汉堡包套餐", "currentPrice": "26.5", "originalPrice": "40", "canWithOrder": false },
+            "9900005453": { "name": "麦香鸡套餐", "currentPrice": "28", "originalPrice": "41.5", "canWithOrder": false },
+            "9900005466": { "name": "巨无霸三件套", "currentPrice": "37", "originalPrice": "50.5", "canWithOrder": false },
+            "9900015602": { "name": "大堡口福三件套", "currentPrice": "22.9", "originalPrice": "48", "canWithOrder": false },
+            "9900016057": { "name": "汉堡开心乐园餐", "currentPrice": "23.5", "originalPrice": "23.5", "canWithOrder": false },
+            "9900010110": { "name": "鱼牛汉堡四件套随心选", "currentPrice": "32", "originalPrice": "59.5", "canWithOrder": false },
+            "4810": { "name": "薯条", "currentPrice": "14.5", "originalPrice": "14.5", "canWithOrder": false },
+            "4437": { "name": "玉米杯", "currentPrice": "13", "originalPrice": "13", "canWithOrder": false },
+            "6102": { "name": "苹果片", "currentPrice": "7", "originalPrice": "7", "canWithOrder": false },
+            "1401": { "name": "麦乐鸡", "currentPrice": "14", "originalPrice": "14", "canWithOrder": false },
+            "1700": { "name": "麦辣鸡翅", "currentPrice": "15", "originalPrice": "15", "canWithOrder": false },
+            "520445": { "name": "薄皮焦香V翅", "currentPrice": "16", "originalPrice": "16", "canWithOrder": false },
+            "521156": { "name": "那么大鸡排（椒盐风味）", "currentPrice": "14", "originalPrice": "14", "canWithOrder": false },
+            "514782": { "name": "脆脆薯条", "currentPrice": "16", "originalPrice": "16", "canWithOrder": false },
+            "9900016082": { "name": "心形薯饼5块", "currentPrice": "15.5", "originalPrice": "15.5", "canWithOrder": false },
+            "9900013304": { "name": "人气经典随心配", "currentPrice": "14.9", "originalPrice": "14.9", "canWithOrder": false },
+            "9900015568": { "name": "精选超值随心配", "currentPrice": "13.9", "originalPrice": "13.9", "canWithOrder": false },
+            "515837": { "name": "圆筒冰淇淋", "currentPrice": "5", "originalPrice": "5", "canWithOrder": false },
+            "521951": { "name": "灰焰圆筒", "currentPrice": "5", "originalPrice": "5", "canWithOrder": false },
+            "9900008745": { "name": "新地", "currentPrice": "12.5", "originalPrice": "12.5", "canWithOrder": false },
+            "9900008754": { "name": "经典麦旋风", "currentPrice": "15.5", "originalPrice": "15.5", "canWithOrder": false },
+            "521750": { "name": "泷盐星星麦旋风", "currentPrice": "16.5", "originalPrice": "16.5", "canWithOrder": false },
+            "521950": { "name": "蓝莓爆爆珠麦旋风", "currentPrice": "16.5", "originalPrice": "16.5", "canWithOrder": false },
+            "9900008752": { "name": "派", "currentPrice": "8", "originalPrice": "8", "canWithOrder": false },
+            "9900008751": { "name": "可乐", "currentPrice": "9.5", "originalPrice": "9.5", "canWithOrder": false },
+            "3010": { "name": "雪碧", "currentPrice": "9.5", "originalPrice": "9.5", "canWithOrder": false },
+            "515280": { "name": "阳光柠檬红茶", "currentPrice": "9.5", "originalPrice": "9.5", "canWithOrder": false },
+            "3505": { "name": "锡兰红茶", "currentPrice": "11.5", "originalPrice": "11.5", "canWithOrder": false },
+            "2430": { "name": "【美汁源】“黄金橙橙”", "currentPrice": "13", "originalPrice": "13", "canWithOrder": false },
+            "515520": { "name": "怡泉+C", "currentPrice": "11.5", "originalPrice": "11.5", "canWithOrder": false },
+            "6362": { "name": "100% 苹果汁(盒装)", "currentPrice": "12", "originalPrice": "12", "canWithOrder": false },
+            "3755": { "name": "纯牛奶(盒装)", "currentPrice": "11", "originalPrice": "11", "canWithOrder": false },
+            "520689": { "name": "鲜萃咖啡", "currentPrice": "9.5", "originalPrice": "9.5", "canWithOrder": false },
+            "507389": { "name": "浓缩咖啡", "currentPrice": "15", "originalPrice": "15", "canWithOrder": false },
+            "507411": { "name": "麦咖啡™美式", "currentPrice": "11.9", "originalPrice": "19", "canWithOrder": false },
+            "507409": { "name": "麦咖啡™奶铁", "currentPrice": "13.9", "originalPrice": "21", "canWithOrder": false },
+            "510479": { "name": "燕麦奶铁", "currentPrice": "9.9", "originalPrice": "23", "canWithOrder": false },
+            "514851": { "name": "咖啡阿芙佳朵", "currentPrice": "15", "originalPrice": "15", "canWithOrder": false },
+            "515946": { "name": "浓浓黑巧（冰/热）", "currentPrice": "13.9", "originalPrice": "21", "canWithOrder": false },
+            "515954": { "name": "浓浓燕麦黑巧（冰/热）", "currentPrice": "15.9", "originalPrice": "23", "canWithOrder": false },
+            "510488": { "name": "燕麦奶", "currentPrice": "21", "originalPrice": "21", "canWithOrder": false },
+            "507394": { "name": "牛奶", "currentPrice": "19", "originalPrice": "19", "canWithOrder": false }
+          }
+        }
+      }
+    },
+    "query-meal-detail": {
+      "result": {
+        "success": true,
+        "code": 200,
+        "message": "请求成功",
+        "data": {
+          "code": "1440",
+          "name": "麦辣鸡腿汉堡",
+          "rounds": [],
+          "supportModify": true,
+          "modification": {
+            "items": [
+              {
+                "maxValues": 2,
+                "minValues": 0,
+                "values": [
+                  { "code": "100136", "price": 0, "name": "麦香鸡酱", "selectedQuantity": 1, "selectedKey": "0-1", "unselectedKey": "0-0" },
+                  { "code": "120512", "price": 0, "name": "切块生菜", "selectedQuantity": 1, "selectedKey": "0-1", "unselectedKey": "0-0" }
+                ]
+              }
+            ]
+          }
+        }
+      }
+    },
+    "calculate-price": {
+      "result": {
+        "success": true,
+        "code": 200,
+        "message": "请求成功",
+        "data": {
+          "productOriginalPrice": 2250,
+          "productPrice": 2250,
+          "originalPrice": 2250,
+          "discount": 0,
+          "price": 2250,
+          "productList": [
+            { "productCode": "1440", "productName": "麦辣鸡腿汉堡", "quantity": 1, "originalSubtotal": 2250, "subtotal": 2250 }
+          ],
+          "takeWayList": [
+            { "code": "eat-in", "title": "堂食", "subtitle": "店内用餐" },
+            { "code": "take-in-store", "title": "外带", "subtitle": "店内自提" }
+          ]
+        }
+      }
+    }
+  },
+  "priceIndex": {
+    "9900004064": 3450,
+    "1440": 2250,
+    "1406": 2350,
+    "1450": 1700,
+    "9900008746": 2350,
+    "521952": 2400,
+    "521953": 2700,
+    "1100": 2600,
+    "1120": 2300,
+    "1106": 2500,
+    "521316": 2250,
+    "4648": 2700,
+    "1600": 2300,
+    "9900003586": 2500,
+    "9900008747": 1400,
+    "511781": 3450,
+    "511782": 3150,
+    "9900005456": 3350,
+    "9900005462": 3450,
+    "9900005449": 2650,
+    "9900005453": 2800,
+    "9900005466": 3700,
+    "9900015602": 2290,
+    "9900016057": 2350,
+    "9900010110": 3200,
+    "4810": 1450,
+    "4437": 1300,
+    "6102": 700,
+    "1401": 1400,
+    "1700": 1500,
+    "520445": 1600,
+    "521156": 1400,
+    "514782": 1600,
+    "9900016082": 1550,
+    "9900013304": 1490,
+    "9900015568": 1390,
+    "515837": 500,
+    "521951": 500,
+    "9900008745": 1250,
+    "9900008754": 1550,
+    "521750": 1650,
+    "521950": 1650,
+    "9900008752": 800,
+    "9900008751": 950,
+    "3010": 950,
+    "515280": 950,
+    "3505": 1150,
+    "2430": 1300,
+    "515520": 1150,
+    "6362": 1200,
+    "3755": 1100,
+    "520689": 950,
+    "507389": 1500,
+    "507411": 1190,
+    "507409": 1390,
+    "510479": 990,
+    "514851": 1500,
+    "515946": 1390,
+    "515954": 1590,
+    "510488": 2100,
+    "507394": 1900
+  }
+}
