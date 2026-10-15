@@ -1,0 +1,13 @@
+// MealScript v0.1 — the canonical example from the dev brief §2.1.
+// Compile with:  pnpm compile:cli examples/budget.meal
+meal lunch {
+  location: "北京市海淀区五道口";
+  mode: pickup;
+  budget: <= 35 CNY;
+  require_keyword: "汉堡";
+  exclude_keywords: ["咖啡"];
+  min_items: 1;
+  max_items: 2;
+  optimize: min(total_price);
+  execution: dry_run;
+}

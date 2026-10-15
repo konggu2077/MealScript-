@@ -1,0 +1,12 @@
+// Deliberately invalid — parses fine, rejected by semantic checks.
+// Expected: E102 at 5:9 (mode: delivery) and E101 at 6:11 (budget <= -10 CNY).
+meal lunch {
+  location: "北京市海淀区五道口";
+  mode: delivery;
+  budget: <= -10 CNY;
+  require_keyword: "汉堡";
+  min_items: 1;
+  max_items: 2;
+  optimize: min(total_price);
+  execution: dry_run;
+}

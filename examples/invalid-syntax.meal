@@ -1,0 +1,11 @@
+// Deliberately invalid — demonstrates explainable failure.
+// Expected: E001 SyntaxError at 7:3 — the `;` after the budget statement is
+// missing, so the parser trips on the next token it sees.
+meal lunch {
+  location: "北京市海淀区五道口";
+  mode: pickup;
+  budget: <= 35 CNY
+  require_keyword: "汉堡";
+  optimize: min(total_price);
+  execution: dry_run;
+}

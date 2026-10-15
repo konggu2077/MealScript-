@@ -1,0 +1,107 @@
+{
+  "$comment": "Redacted schema snapshot captured from the live McDonald's MCP server (https://mcp.mcd.cn) on 2026-10-15 22:00 GMT+8. Captured with a real, authenticated, read-only session. No token, no personal data and no raw response bodies are stored here — only request schemas and response field shapes.",
+  "capturedAt": "2026-10-15T22:00:14+08:00",
+  "server": {
+    "url": "https://mcp.mcd.cn",
+    "transport": "streamable-http",
+    "auth": "Authorization: Bearer <TOKEN>",
+    "documentedRateLimit": "600 calls per minute per token",
+    "statusCodes": {
+      "401": "credential problem -> E401",
+      "429": "rate limited -> E429"
+    }
+  },
+  "tools": {
+    "query-nearby-stores": {
+      "stage": "P0",
+      "purpose": "Find a real store and obtain storeCode / beCode",
+      "inputSchema": {
+        "type": "object",
+        "required": ["beType", "searchType"],
+        "properties": {
+          "beType": { "enum": [1, 5], "description": "1 = 到店自提 (no beCode returned), 5 = 得来速 (beCode required downstream)" },
+          "searchType": { "enum": [1, 2], "default": 1, "description": "2 = search by location (city + keyword required), 1 = favourites" },
+          "city": { "type": "string", "description": "城市名, required when searchType=2" },
+          "keyword": { "type": "string", "description": "位置关键词, required when searchType=2" }
+        }
+      },
+      "responseShape": {
+        "data[]": ["storeCode", "storeName", "address", "distance", "businessStatus", "businessStartTime", "businessEndTime", "reservation", "reservationTimeOptions[]"]
+      },
+      "notes": "MealScript stores only storeCode + storeName; address / distance / coordinates are dropped before the result reaches the UI or a fixture."
+    },
+    "query-meals": {
+      "stage": "P0",
+      "purpose": "Fetch the current sellable catalogue for a store",
+      "inputSchema": {
+        "type": "object",
+        "required": ["storeCode", "orderType", "beType"],
+        "properties": {
+          "storeCode": { "type": "string" },
+          "orderType": { "enum": [1, 2], "description": "1 = 到店 (自取/得来速), 2 = 外送" },
+          "beType": { "enum": [1, 2, 5, 6] },
+          "beCode": { "type": "string", "description": "beType=1 (到店自取) must NOT pass beCode" },
+          "reservationDate": { "type": "string", "description": "yyyy-MM-dd HH:mm, reservation only" }
+        }
+      },
+      "responseShape": {
+        "data.categories[]": ["name", "meals[].code", "meals[].tags[]"],
+        "data.meals{code}": ["name", "image", "currentPrice", "originalPrice", "discountType", "canWithOrder", "withOrder"]
+      },
+      "notes": "Prices are strings in YUAN here (e.g. \"33.5\"). Product images are brand assets and are deliberately NOT copied into fixtures."
+    },
+    "query-meal-detail": {
+      "stage": "P0",
+      "purpose": "Verify a candidate's composition and customisation options",
+      "inputSchema": {
+        "type": "object",
+        "required": ["storeCode", "orderType", "beType", "code"],
+        "properties": {
+          "storeCode": { "type": "string" },
+          "orderType": { "enum": [1, 2] },
+          "beType": { "enum": [1, 2, 5, 6] },
+          "code": { "type": "string" },
+          "beCode": { "type": "string" },
+          "reservationDate": { "type": "string" }
+        }
+      },
+      "responseShape": {
+        "data": ["code", "name", "image", "supportModify", "rounds[].choices[]", "modification.items[].values[]"]
+      }
+    },
+    "calculate-price": {
+      "stage": "P0",
+      "purpose": "Official settlement price — the final authority for the budget check",
+      "inputSchema": {
+        "type": "object",
+        "required": ["storeCode", "orderType", "beType"],
+        "properties": {
+          "storeCode": { "type": "string" },
+          "orderType": { "enum": [1, 2] },
+          "beType": { "enum": [1, 2, 5, 6] },
+          "items[]": {
+            "productCode": "string, required",
+            "quantity": "integer >= 1, required",
+            "couponId": "optional",
+            "couponCode": "optional",
+            "modification.values[]": "code + key + quantity; selected items use selectedKey, unselected items use unselectedKey"
+          },
+          "needTableware": { "type": "boolean" }
+        }
+      },
+      "responseShape": {
+        "data": ["productOriginalPrice", "productPrice", "originalPrice", "discount", "price", "productList[].productCode", "productList[].productName", "productList[].quantity", "productList[].subtotal", "takeWayList[]"]
+      },
+      "critical": "ALL money fields are in FEN (1/100 yuan). 2250 means CNY 22.50. Dividing by 100 is mandatory."
+    },
+    "query-store-coupons": { "stage": "P1", "purpose": "Coupon extension — price must be recalculated after applying a coupon" },
+    "list-nutrition-foods": { "stage": "P1", "purpose": "Nutrition extension — only for products with a reliable mapping" }
+  },
+  "forbidden": {
+    "create-order": "Creates a real transaction. MealScript never calls this.",
+    "cancel-order": "Mutates an order.",
+    "auto-bind-coupons": "Claims coupons on the user's account.",
+    "delivery-create-address": "Writes personal address data.",
+    "mall-create-order": "Paid order in the points mall."
+  }
+}

@@ -1,0 +1,35 @@
+# ---- dependencies ----
+node_modules/
+.pnpm-store/
+
+# ---- build output ----
+dist/*
+build/*
+.next/
+out/
+coverage/
+*.tsbuildinfo
+
+# the shipped single-file page and its builder are deliverables, keep them
+# (note: `dir/*` + `!dir/file` — git cannot un-ignore inside an ignored dir)
+!dist/mealscript.html
+!build/single.mjs
+!build/
+
+# ---- secrets (NEVER commit) ----
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# ---- local MCP / runtime data ----
+.mcp-local/
+*.log
+logs/
+
+# ---- editors / os ----
+.DS_Store
+.vscode/
+.idea/
+Thumbs.db

@@ -1,0 +1,29 @@
+{
+  "name": "mealscript",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Code Your Meal. Compile Your Hunger. A real DSL compiler that turns meal constraints into verified, price-checked combinations using the official McDonald's MCP server.",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "dev": "npm run dev --workspace @mealscript/playground",
+    "build": "npm run build --workspace @mealscript/playground",
+    "build:single": "node build/single.mjs",
+    "compile:cli": "tsx packages/compiler/src/cli.ts"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2",
+    "tsx": "^4.19.2",
+    "typescript": "^5.6.3",
+    "vitest": "^2.1.8"
+  }
+}
