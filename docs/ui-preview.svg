@@ -1,0 +1,182 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 820" width="1280" height="820" role="img" aria-label="MealScript Playground 界面">
+<rect width="1280" height="820" fill="#0b0d11"/>
+<rect x="24" y="64" width="530" height="470" rx="12" fill="#14181f" stroke="#252c38" stroke-width="1"/>
+<rect x="570" y="64" width="180" height="470" rx="12" fill="#14181f" stroke="#252c38" stroke-width="1"/>
+<rect x="766" y="64" width="490" height="470" rx="12" fill="#14181f" stroke="#252c38" stroke-width="1"/>
+<rect x="24" y="546" width="530" height="248" rx="12" fill="#14181f" stroke="#252c38" stroke-width="1"/>
+<rect x="570" y="546" width="686" height="248" rx="12" fill="#14181f" stroke="#252c38" stroke-width="1"/>
+
+<text x="24" y="44" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="21" font-weight="600" fill="#f5c242">Meal</text>
+<text x="80" y="44" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="21" font-weight="600" fill="#e8eaf0">Script</text>
+<text x="152" y="44" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,PingFang SC,Microsoft YaHei,sans-serif" font-size="14" fill="#9aa3b2">把吃什么写成一门语言，再编译成一份有官方价格证据的方案</text>
+<rect x="884" y="26" width="78" height="26" rx="13" fill="#241f0d" stroke="#6b5a1e" stroke-width="1"/>
+<text x="923" y="43" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="13" fill="#f5c242" text-anchor="middle">REPLAY</text>
+<rect x="972" y="26" width="96" height="26" rx="13" fill="#1a1f28" stroke="#333c4d" stroke-width="1"/>
+<text x="1020" y="43" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="13" fill="#9aa3b2" text-anchor="middle">v0.1 · dry_run</text>
+<rect x="1078" y="26" width="178" height="26" rx="13" fill="#241a18" stroke="#5c3330" stroke-width="1"/>
+<text x="1167" y="43" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,PingFang SC,Microsoft YaHei,sans-serif" font-size="13" fill="#ffb4a2" text-anchor="middle">非麦当劳官方产品</text>
+
+<line x1="24" y1="96" x2="554" y2="96" stroke="#252c38" stroke-width="1"/>
+<text x="38" y="84" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,PingFang SC,Microsoft YaHei,sans-serif" font-size="14" font-weight="600" fill="#e8eaf0">源码</text>
+<text x="80" y="84" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,PingFang SC,Microsoft YaHei,sans-serif" font-size="13" fill="#9aa3b2">MealScript v0.1</text>
+<text x="540" y="84" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,PingFang SC,Microsoft YaHei,sans-serif" font-size="12" fill="#6b7484" text-anchor="end">Ctrl + Enter 编译</text>
+
+<rect x="38" y="108" width="196" height="26" rx="8" fill="#241f0d" stroke="#6b5a1e" stroke-width="1"/>
+<text x="136" y="126" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,PingFang SC,Microsoft YaHei,sans-serif" font-size="12" fill="#f5c242" text-anchor="middle">经典 · 35 元要汉堡</text>
+<rect x="242" y="108" width="146" height="26" rx="8" fill="#1a1f28" stroke="#333c4d" stroke-width="1"/>
+<text x="315" y="126" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,PingFang SC,Microsoft YaHei,sans-serif" font-size="12" fill="#9aa3b2" text-anchor="middle">两件套 · 汉堡小食</text>
+<rect x="396" y="108" width="144" height="26" rx="8" fill="#1a1f28" stroke="#333c4d" stroke-width="1"/>
+<text x="468" y="126" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,PingFang SC,Microsoft YaHei,sans-serif" font-size="12" fill="#9aa3b2" text-anchor="middle">故意写错 · 漏分号</text>
+
+<rect x="38" y="144" width="502" height="270" rx="10" fill="#0e1116" stroke="#252c38" stroke-width="1"/>
+<g font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="14">
+<text x="58" y="172" fill="#f5c242">meal</text>
+<text x="106" y="172" fill="#e8eaf0">lunch {</text>
+<text x="76" y="196" fill="#9aa3b2">location:</text>
+<text x="164" y="196" fill="#7ee787">"北京市海淀区五道口"</text>
+<text x="374" y="196" fill="#8b949e">;</text>
+<text x="76" y="220" fill="#9aa3b2">mode:</text>
+<text x="164" y="220" fill="#e8eaf0">pickup</text>
+<text x="212" y="220" fill="#8b949e">;</text>
+<text x="76" y="244" fill="#9aa3b2">budget:</text>
+<text x="164" y="244" fill="#8b949e">&lt;=</text>
+<text x="190" y="244" fill="#79c0ff">35</text>
+<text x="214" y="244" fill="#56d4dd">CNY</text>
+<text x="250" y="244" fill="#8b949e">;</text>
+<text x="76" y="268" fill="#9aa3b2">require_keyword:</text>
+<text x="212" y="268" fill="#7ee787">"汉堡"</text>
+<text x="262" y="268" fill="#8b949e">;</text>
+<text x="76" y="292" fill="#9aa3b2">exclude_keywords:</text>
+<text x="228" y="292" fill="#8b949e">[</text>
+<text x="240" y="292" fill="#7ee787">"咖啡"</text>
+<text x="290" y="292" fill="#8b949e">];</text>
+<text x="76" y="316" fill="#9aa3b2">min_items:</text>
+<text x="164" y="316" fill="#79c0ff">1</text>
+<text x="176" y="316" fill="#8b949e">;</text>
+<text x="76" y="340" fill="#9aa3b2">max_items:</text>
+<text x="164" y="340" fill="#79c0ff">2</text>
+<text x="176" y="340" fill="#8b949e">;</text>
+<text x="76" y="364" fill="#9aa3b2">optimize:</text>
+<text x="164" y="364" fill="#e8eaf0">min</text>
+<text x="194" y="364" fill="#8b949e">(</text>
+<text x="204" y="364" fill="#e8eaf0">total_price</text>
+<text x="302" y="364" fill="#8b949e">);</text>
+<text x="76" y="388" fill="#9aa3b2">execution:</text>
+<text x="188" y="388" fill="#e8eaf0">dry_run</text>
+<text x="248" y="388" fill="#8b949e">;</text>
+<text x="58" y="412" fill="#e8eaf0">}</text>
+</g>
+
+<rect x="38" y="430" width="110" height="38" rx="9" fill="#f5c242"/>
+<text x="93" y="455" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,PingFang SC,Microsoft YaHei,sans-serif" font-size="14" font-weight="600" fill="#1a1300" text-anchor="middle">Compile</text>
+<text x="162" y="455" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,PingFang SC,Microsoft YaHei,sans-serif" font-size="12" fill="#6b7484">完成 · 12 个 trace 事件</text>
+
+<line x1="570" y1="96" x2="750" y2="96" stroke="#252c38" stroke-width="1"/>
+<text x="584" y="84" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,PingFang SC,Microsoft YaHei,sans-serif" font-size="14" font-weight="600" fill="#e8eaf0">执行阶段</text>
+<g>
+<rect x="582" y="108" width="156" height="44" rx="9" fill="#141f19" stroke="#2c5c42" stroke-width="1"/>
+<circle cx="596" cy="130" r="4" fill="#4ade80"/>
+<text x="608" y="127" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,PingFang SC,Microsoft YaHei,sans-serif" font-size="13" font-weight="600" fill="#e8eaf0">Parse</text>
+<text x="608" y="143" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,PingFang SC,Microsoft YaHei,sans-serif" font-size="11" fill="#9aa3b2">词法与语法分析</text>
+<text x="726" y="127" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="11" fill="#6b7484" text-anchor="end">4ms</text>
+</g>
+<g>
+<rect x="582" y="160" width="156" height="44" rx="9" fill="#141f19" stroke="#2c5c42" stroke-width="1"/>
+<circle cx="596" cy="182" r="4" fill="#4ade80"/>
+<text x="608" y="179" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,PingFang SC,Microsoft YaHei,sans-serif" font-size="13" font-weight="600" fill="#e8eaf0">Check</text>
+<text x="608" y="195" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,PingFang SC,Microsoft YaHei,sans-serif" font-size="11" fill="#9aa3b2">语义检查与 IR</text>
+<text x="726" y="179" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="11" fill="#6b7484" text-anchor="end">1ms</text>
+</g>
+<g>
+<rect x="582" y="212" width="156" height="44" rx="9" fill="#141f19" stroke="#2c5c42" stroke-width="1"/>
+<circle cx="596" cy="234" r="4" fill="#4ade80"/>
+<text x="608" y="231" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,PingFang SC,Microsoft YaHei,sans-serif" font-size="13" font-weight="600" fill="#e8eaf0">Menu</text>
+<text x="608" y="247" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,PingFang SC,Microsoft YaHei,sans-serif" font-size="11" fill="#9aa3b2">查询门店与菜单</text>
+<text x="726" y="231" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="11" fill="#6b7484" text-anchor="end">318ms</text>
+</g>
+<g>
+<rect x="582" y="264" width="156" height="44" rx="9" fill="#141f19" stroke="#2c5c42" stroke-width="1"/>
+<circle cx="596" cy="286" r="4" fill="#4ade80"/>
+<text x="608" y="283" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,PingFang SC,Microsoft YaHei,sans-serif" font-size="13" font-weight="600" fill="#e8eaf0">Optimize</text>
+<text x="608" y="299" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,PingFang SC,Microsoft YaHei,sans-serif" font-size="11" fill="#9aa3b2">有界组合搜索</text>
+<text x="726" y="283" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="11" fill="#6b7484" text-anchor="end">6ms</text>
+</g>
+<g>
+<rect x="582" y="316" width="156" height="44" rx="9" fill="#141f19" stroke="#2c5c42" stroke-width="1"/>
+<circle cx="596" cy="338" r="4" fill="#4ade80"/>
+<text x="608" y="335" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,PingFang SC,Microsoft YaHei,sans-serif" font-size="13" font-weight="600" fill="#e8eaf0">Price</text>
+<text x="608" y="351" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,PingFang SC,Microsoft YaHei,sans-serif" font-size="11" fill="#9aa3b2">官方价格校验</text>
+<text x="726" y="335" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="11" fill="#6b7484" text-anchor="end">1ms</text>
+</g>
+<g>
+<rect x="582" y="368" width="156" height="44" rx="9" fill="#141f19" stroke="#2c5c42" stroke-width="1"/>
+<circle cx="596" cy="390" r="4" fill="#4ade80"/>
+<text x="608" y="387" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,PingFang SC,Microsoft YaHei,sans-serif" font-size="13" font-weight="600" fill="#e8eaf0">Result</text>
+<text x="608" y="403" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,PingFang SC,Microsoft YaHei,sans-serif" font-size="11" fill="#9aa3b2">生成 Build Report</text>
+</g>
+
+<line x1="766" y1="96" x2="1256" y2="96" stroke="#252c38" stroke-width="1"/>
+<text x="780" y="84" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,PingFang SC,Microsoft YaHei,sans-serif" font-size="14" font-weight="600" fill="#e8eaf0">Build Report</text>
+<text x="1242" y="84" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="12" fill="#6b7484" text-anchor="end">1152a7b3</text>
+<rect x="780" y="108" width="132" height="28" rx="8" fill="#241f0d" stroke="#6b5a1e" stroke-width="1"/>
+<text x="846" y="127" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="13" fill="#f5c242" text-anchor="middle">REPLAY_RESULT</text>
+<rect x="920" y="108" width="78" height="28" rx="8" fill="#1a1f28" stroke="#333c4d" stroke-width="1"/>
+<text x="959" y="127" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="13" fill="#9aa3b2" text-anchor="middle">REPLAY</text>
+<g font-family="-apple-system,BlinkMacSystemFont,Segoe UI,PingFang SC,Microsoft YaHei,sans-serif" font-size="14">
+<text x="780" y="164" fill="#6b7484">门店</text>
+<text x="900" y="164" fill="#e8eaf0">麦当劳北京五道口优盛餐厅</text>
+<text x="780" y="188" fill="#6b7484">门店编号</text>
+<text x="900" y="188" fill="#e8eaf0" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace">1950556</text>
+<text x="780" y="212" fill="#6b7484">可售商品</text>
+<text x="900" y="212" fill="#e8eaf0">120 件</text>
+<text x="780" y="236" fill="#6b7484">组合枚举</text>
+<text x="900" y="236" fill="#e8eaf0">16 个</text>
+</g>
+<rect x="780" y="252" width="462" height="42" rx="10" fill="#14181f" stroke="#252c38" stroke-width="1"/>
+<text x="796" y="279" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,PingFang SC,Microsoft YaHei,sans-serif" font-size="14" fill="#e8eaf0">麦辣鸡腿汉堡</text>
+<text x="1096" y="279" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="12" fill="#6b7484">#1440</text>
+<text x="1226" y="279" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="14" fill="#e8eaf0" text-anchor="end">¥22.50</text>
+<rect x="780" y="304" width="462" height="60" rx="10" fill="#241f0d" stroke="#6b5a1e" stroke-width="1"/>
+<text x="796" y="345" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="28" font-weight="600" fill="#f5c242">¥22.50</text>
+<text x="912" y="343" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,PingFang SC,Microsoft YaHei,sans-serif" font-size="13" fill="#9aa3b2">官方结算价 · 预算剩余 ¥12.50</text>
+<text x="780" y="388" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,PingFang SC,Microsoft YaHei,sans-serif" font-size="12" fill="#6b7484">证据：calculate-price · 校验于 2026-10-15T22:00:14+08:00</text>
+<text x="780" y="410" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,PingFang SC,Microsoft YaHei,sans-serif" font-size="12" fill="#f5c242">脱敏样例模拟价，非实时查询</text>
+<text x="780" y="440" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,PingFang SC,Microsoft YaHei,sans-serif" font-size="12" fill="#6b7484">搜索范围：16 个组合全部枚举（1–2 件，已排除含「咖啡」的商品）</text>
+
+<line x1="24" y1="578" x2="554" y2="578" stroke="#252c38" stroke-width="1"/>
+<text x="38" y="566" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,PingFang SC,Microsoft YaHei,sans-serif" font-size="14" font-weight="600" fill="#e8eaf0">Diagnostics</text>
+<text x="540" y="566" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,PingFang SC,Microsoft YaHei,sans-serif" font-size="12" fill="#6b7484" text-anchor="end">1 条</text>
+<rect x="38" y="592" width="502" height="74" rx="8" fill="#241a18" stroke="#5c3330" stroke-width="1"/>
+<rect x="38" y="592" width="3" height="74" fill="#ff6b6b"/>
+<text x="54" y="616" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="13" fill="#ff6b6b">E102</text>
+<text x="104" y="616" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="13" fill="#6b7484">5:9</text>
+<text x="146" y="616" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,PingFang SC,Microsoft YaHei,sans-serif" font-size="12" fill="#9aa3b2">SemanticConstraintError</text>
+<text x="54" y="638" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,PingFang SC,Microsoft YaHei,sans-serif" font-size="13" fill="#e8eaf0">v0.1 仅支持到店自取，当前为 delivery</text>
+<text x="54" y="658" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,PingFang SC,Microsoft YaHei,sans-serif" font-size="13" fill="#f5c242">↳ 改为 mode: pickup;</text>
+
+<line x1="570" y1="578" x2="1256" y2="578" stroke="#252c38" stroke-width="1"/>
+<text x="584" y="566" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,PingFang SC,Microsoft YaHei,sans-serif" font-size="14" font-weight="600" fill="#e8eaf0">Trace</text>
+<text x="1242" y="566" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,PingFang SC,Microsoft YaHei,sans-serif" font-size="12" fill="#6b7484" text-anchor="end">已脱敏 · 不含 Token 与个人信息</text>
+<g font-family="-apple-system,BlinkMacSystemFont,Segoe UI,PingFang SC,Microsoft YaHei,sans-serif" font-size="12" fill="#6b7484">
+<text x="584" y="600">#</text><text x="610" y="600">阶段</text><text x="668" y="600">类型</text><text x="760" y="600">内容</text><text x="1150" y="600">状态</text><text x="1210" y="600">耗时</text>
+</g>
+<g font-family="-apple-system,BlinkMacSystemFont,Segoe UI,PingFang SC,Microsoft YaHei,sans-serif" font-size="13">
+<text x="584" y="626" fill="#9aa3b2" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace">1</text>
+<text x="610" y="626" fill="#9aa3b2">parse</text><text x="668" y="626" fill="#6b7484">stage</text><text x="760" y="626" fill="#e8eaf0">Parse · 词法与语法分析</text>
+<text x="1150" y="626" fill="#4ade80">ok</text><text x="1210" y="626" fill="#6b7484" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace">4ms</text>
+<text x="584" y="652" fill="#9aa3b2" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace">4</text>
+<text x="610" y="652" fill="#9aa3b2">menu</text><text x="668" y="652" fill="#6b7484">tool_call</text><text x="760" y="652" fill="#e8eaf0">query-nearby-stores · 找到门店 1950556</text>
+<text x="1150" y="652" fill="#4ade80">ok</text><text x="1210" y="652" fill="#6b7484" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace">318ms</text>
+<text x="584" y="678" fill="#9aa3b2" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace">5</text>
+<text x="610" y="678" fill="#9aa3b2">menu</text><text x="668" y="678" fill="#6b7484">tool_call</text><text x="760" y="678" fill="#e8eaf0">query-meals · 菜单 120 件</text>
+<text x="1150" y="678" fill="#4ade80">ok</text><text x="1210" y="678" fill="#6b7484" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace">212ms</text>
+<text x="584" y="704" fill="#9aa3b2" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace">7</text>
+<text x="610" y="704" fill="#9aa3b2">optimize</text><text x="668" y="704" fill="#6b7484">note</text><text x="760" y="704" fill="#e8eaf0">枚举 16 个组合</text>
+<text x="1150" y="704" fill="#4ade80">ok</text><text x="1210" y="704" fill="#6b7484" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace">6ms</text>
+<text x="584" y="730" fill="#9aa3b2" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace">9</text>
+<text x="610" y="730" fill="#9aa3b2">price</text><text x="668" y="730" fill="#6b7484">tool_call</text><text x="760" y="730" fill="#e8eaf0">calculate-price · 官方结算价 ¥22.50</text>
+<text x="1150" y="730" fill="#4ade80">ok</text><text x="1210" y="730" fill="#6b7484" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace">1ms</text>
+</g>
+<line x1="584" y1="746" x2="1242" y2="746" stroke="#252c38" stroke-width="1"/>
+<text x="584" y="770" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,PingFang SC,Microsoft YaHei,sans-serif" font-size="12" fill="#6b7484">每一次工具调用都留在 trace 里：调了什么、多久、返回了什么结构 —— 全部经过脱敏</text>
+</svg>

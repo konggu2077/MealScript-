@@ -1,8 +1,15 @@
-# MealScript · 麦门编译器
+![MealScript](docs/banner.svg)
+
+### 立刻试试
+
+- **在线 Demo**：https://konggu2077.github.io/MealScript-/dist/mealscript.html —— 不用装任何东西，打开即用，断网也能跑
+- **下载单文件网页**：[`dist/mealscript.html`](dist/mealscript.html)（254 KB，双击即开，CSS/JS 全内联、零外部请求）
 
 > Code Your Meal. Compile Your Hunger.
 
 **MealScript 是一门面向真实麦当劳点餐场景的轻量 DSL，配一个真正自己写的编译器。**
+**自己写的编译器 · 官方 MCP 真实结算价 · 行列级可解释诊断**
+
 你用可编译的约束语句描述预算与偏好，系统用麦当劳官方 MCP 查询真实门店、真实菜单与真实结算价，产出带调用证据的候选方案，以及能精确到行列的编译诊断。
 
 ```
@@ -25,6 +32,22 @@ meal lunch {
 REPLAY_RESULT  官方结算价 ¥22.50  预算剩余 ¥12.50
   麦辣鸡腿汉堡 (1440) × 1   ¥22.50
   门店：麦当劳北京五道口优盛餐厅 (1950556)
+```
+
+---
+
+## 界面一览
+
+![MealScript Playground](docs/ui-preview.svg)
+
+左边写 `.meal`，中间六个阶段依次亮起，右边给出带官方结算价的结果卡，底部是脱敏后的执行轨迹。
+状态由真实事件驱动，不是动画；`Live` / `Replay` 标签全程可见。
+
+故意写错一行，它不会含糊地说「我不太确定」，而是给出行列号、错误码和修复建议：
+
+```
+E102  5: 9  SemanticConstraintError — v0.1 仅支持到店自取，当前为 delivery
+    ↳ 改为 mode: pickup;
 ```
 
 ---

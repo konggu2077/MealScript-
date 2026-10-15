@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 360" width="1280" height="360" role="img" aria-label="MealScript banner">
+<rect width="1280" height="360" fill="#0b0d11"/>
+<rect x="690" y="70" width="530" height="220" rx="12" fill="#14181f" stroke="#252c38" stroke-width="1"/>
+<text x="60" y="150" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,PingFang SC,Hiragino Sans GB,Microsoft YaHei,sans-serif" font-size="64" font-weight="600" fill="#f5c242">Meal</text>
+<text x="200" y="150" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,PingFang SC,Hiragino Sans GB,Microsoft YaHei,sans-serif" font-size="64" font-weight="600" fill="#e8eaf0">Script</text>
+<text x="62" y="192" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="19" fill="#e8eaf0">Code Your Meal. Compile Your Hunger.</text>
+<text x="62" y="222" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,PingFang SC,Hiragino Sans GB,Microsoft YaHei,sans-serif" font-size="16" fill="#9aa3b2">把吃什么写成一门语言，再编译成带官方价格证据的方案</text>
+<rect x="60" y="252" width="104" height="32" rx="16" fill="#1a1f28" stroke="#333c4d" stroke-width="1"/>
+<text x="112" y="273" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,PingFang SC,Microsoft YaHei,sans-serif" font-size="14" fill="#9aa3b2" text-anchor="middle">DSL 编译器</text>
+<rect x="176" y="252" width="164" height="32" rx="16" fill="#1a1f28" stroke="#333c4d" stroke-width="1"/>
+<text x="258" y="273" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,PingFang SC,Microsoft YaHei,sans-serif" font-size="14" fill="#9aa3b2" text-anchor="middle">官方 MCP 价格校验</text>
+<rect x="352" y="252" width="116" height="32" rx="16" fill="#1a1f28" stroke="#333c4d" stroke-width="1"/>
+<text x="410" y="273" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,PingFang SC,Microsoft YaHei,sans-serif" font-size="14" fill="#9aa3b2" text-anchor="middle">行列级诊断</text>
+<g font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="15">
+<text x="716" y="106" fill="#f5c242">meal</text>
+<text x="768" y="106" fill="#e8eaf0">lunch {</text>
+<text x="736" y="130" fill="#9aa3b2">location:</text>
+<text x="836" y="130" fill="#7ee787">"北京市海淀区五道口"</text>
+<text x="1076" y="130" fill="#8b949e">;</text>
+<text x="736" y="154" fill="#9aa3b2">mode:</text>
+<text x="836" y="154" fill="#e8eaf0">pickup</text>
+<text x="892" y="154" fill="#8b949e">;</text>
+<text x="736" y="178" fill="#9aa3b2">budget:</text>
+<text x="836" y="178" fill="#8b949e">&lt;=</text>
+<text x="864" y="178" fill="#79c0ff">35</text>
+<text x="890" y="178" fill="#56d4dd">CNY</text>
+<text x="932" y="178" fill="#8b949e">;</text>
+<text x="736" y="202" fill="#9aa3b2">require_keyword:</text>
+<text x="892" y="202" fill="#7ee787">"汉堡"</text>
+<text x="946" y="202" fill="#8b949e">;</text>
+<text x="736" y="226" fill="#9aa3b2">optimize:</text>
+<text x="836" y="226" fill="#e8eaf0">min</text>
+<text x="868" y="226" fill="#8b949e">(</text>
+<text x="880" y="226" fill="#e8eaf0">total_price</text>
+<text x="984" y="226" fill="#8b949e">);</text>
+<text x="736" y="250" fill="#9aa3b2">execution:</text>
+<text x="848" y="250" fill="#e8eaf0">dry_run</text>
+<text x="912" y="250" fill="#8b949e">;</text>
+<text x="716" y="274" fill="#e8eaf0">}</text>
+</g>
+<text x="690" y="322" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="15" fill="#f5c242">REPLAY_RESULT  ¥22.50</text>
+<text x="880" y="322" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,PingFang SC,Microsoft YaHei,sans-serif" font-size="14" fill="#6b7484">预算剩余 ¥12.50 · 门店 1950556</text>
+</svg>
