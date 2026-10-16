@@ -3,7 +3,7 @@
 <p align="left">
   <img alt="node &gt;= 20" src="docs/badges/node.svg">
   <img alt="workspace npm" src="docs/badges/workspace.svg">
-  <img alt="tests 93 passed" src="docs/badges/tests.svg">
+  <img alt="tests 94 passed" src="docs/badges/tests.svg">
   <img alt="license MIT" src="docs/badges/license.svg">
 </p>
 
@@ -97,7 +97,7 @@ npm install
 # 1) 不依赖任何凭据，先验证编译器是真的
 npm run compile:cli examples/budget.meal
 
-# 2) 跑全部测试（93 个）
+# 2) 跑全部测试（94 个）
 npm test
 
 # 3) 启动网页 Playground
@@ -183,7 +183,7 @@ mealscript/
 │   └── trace/                统一执行轨迹与脱敏
 ├── examples/                 三份 .meal 示例（1 份正确 + 2 份故意写错）
 ├── fixtures/                 脱敏 Replay 案例（成功 / 失败）
-├── tests/                    93 个单元与集成测试
+├── tests/                    94 个单元与集成测试
 ├── CONTEST_DECLARATION.md    官方参赛声明原文（未改动一个字）
 ├── MCP_INTEGRATION.md        实际使用的 MCP Server / Tool / 调用流程
 ├── mcp-config.example.json   配置示例（只有占位符）
@@ -279,8 +279,8 @@ npm test
 ✓ tests/trace.test.ts          (14 tests)
 ✓ tests/verifier.test.ts       ( 7 tests)
 ✓ tests/pipeline.test.ts       (10 tests)
-✓ tests/browser-bundle.test.ts (11 tests)
-Test Files  6 passed (6)       Tests  93 passed (93)
+✓ tests/browser-bundle.test.ts (12 tests)
+Test Files  6 passed (6)       Tests  94 passed (94)
 ```
 
 覆盖：合法/非法语法、全部错误码、location 拆分、脱敏、有界搜索的边界与上限、官方价 vs 菜单价、Replay 永不冒充 Live、端到端流水线，
