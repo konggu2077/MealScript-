@@ -100,6 +100,22 @@ describe('single-file HTML output', () => {
     expect(html).not.toMatch(/Bearer\s+[A-Za-z0-9._-]{8,}/);
     expect(html).toContain('MealScript');
   });
+
+  /**
+   * Caret alignment: the caret is painted by the <textarea> while the glyphs come
+   * from the <pre><code> layer. If those two resolve to different fonts the glyph
+   * run drifts away from the caret (up to ~5px over a 40-char line, worst on CJK).
+   * <code> picks up the UA stylesheet's `font-family: monospace` unless an author
+   * rule overrides it, so this must be asserted explicitly.
+   */
+  it('renders the highlight layer in the same font as the textarea', () => {
+    const html = readFileSync(join(root, 'dist/mealscript.html'), 'utf8');
+    expect(html).toMatch(/\.editor pre code\s*\{[^}]*font\s*:\s*inherit/);
+    // the two layers must also share one font declaration and one scrollbar policy,
+    // otherwise their content boxes differ by the scrollbar width
+    expect(html).toMatch(/\.editor pre\s*,\s*\.editor textarea\s*\{[^}]*font-family/);
+    expect(html.match(/scrollbar-gutter\s*:\s*stable/g) ?? []).toHaveLength(2);
+  });
 });
 
 /**

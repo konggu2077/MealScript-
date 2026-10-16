@@ -46,8 +46,9 @@ header{display:flex;flex-wrap:wrap;align-items:center;gap:12px;padding:4px 0 0;m
 .editor{position:relative;height:272px;margin-top:12px;border:1px solid var(--line);border-radius:10px;background:#0e1116;overflow:hidden;transition:border-color .15s ease}
 .editor:focus-within{border-color:var(--gold-line)}
 .editor pre,.editor textarea{margin:0;padding:12px 14px;font-family:var(--mono);font-size:13px;line-height:1.7;tab-size:2;white-space:pre;word-wrap:normal;border:0}
-.editor pre{position:absolute;inset:0;overflow:auto;pointer-events:none;color:var(--fg)}
-.editor textarea{position:absolute;inset:0;width:100%;height:100%;resize:none;background:transparent;color:transparent;caret-color:var(--gold);outline:0;overflow:auto}
+.editor pre code{font:inherit;letter-spacing:inherit;white-space:inherit;word-wrap:inherit;tab-size:inherit}
+.editor pre{position:absolute;inset:0;overflow:auto;scrollbar-gutter:stable;pointer-events:none;color:var(--fg)}
+.editor textarea{position:absolute;inset:0;width:100%;height:100%;resize:none;background:transparent;color:transparent;caret-color:var(--gold);outline:0;overflow:auto;scrollbar-gutter:stable}
 .editor textarea::selection{background:rgba(245,194,66,.25)}
 .ac-mirror{position:absolute;top:0;left:0;visibility:hidden;pointer-events:none;box-sizing:border-box;margin:0;padding:12px 14px;font-family:var(--mono);font-size:13px;line-height:1.7;tab-size:2;white-space:pre;word-wrap:normal;border:0}
 .ac{position:absolute;z-index:30;min-width:190px;max-width:300px;max-height:206px;overflow:auto;background:#161b24;border:1px solid var(--line2);border-radius:8px;box-shadow:0 10px 28px rgba(0,0,0,.5);padding:4px;font-family:var(--mono);font-size:12.5px;line-height:1.5}
