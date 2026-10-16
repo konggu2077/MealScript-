@@ -66,6 +66,51 @@ describe('bounded combination search', () => {
     expect(codes).toContain('b');
   });
 
+  it('builds a multi-item meal from the whole menu, not just the keyword hits', () => {
+    // Regression: the pool used to be narrowed to keyword hits, so "汉堡 + 小食"
+    // was impossible — the second item had to be another burger.
+    const menu: OptimizerItem[] = [
+      { code: 'burger', name: '香辣汉堡', priceCny: 20, category: '鸡肉汉堡/卷' },
+      { code: 'fries', name: '薯条', priceCny: 10, category: '小食' },
+      { code: 'coke', name: '可乐', priceCny: 8, category: '饮品' },
+    ];
+    const result = buildCandidates(menu, { ...base, requireKeyword: '汉堡', minItems: 2, maxItems: 2 });
+    expect(result.ok).toBe(true); // before the fix this was E220 with 0 combinations
+    const combos = result.candidates.map((c) => c.items.map((i) => i.code).sort().join('+'));
+    expect(combos.length).toBeGreaterThan(0);
+    // The second item comes from the wider menu (薯条 / 可乐), not another burger.
+    for (const combo of combos) {
+      expect(combo).toContain('burger');
+      expect(combo === 'burger+coke' || combo === 'burger+fries').toBe(true);
+    }
+    for (const candidate of result.candidates) {
+      expect(candidate.items.some((i) => i.name.includes('汉堡'))).toBe(true);
+    }
+  });
+
+  it('offers distinct plans instead of the same hit padded with a different side', () => {
+    const menu: OptimizerItem[] = [
+      { code: 'burger', name: '香辣汉堡', priceCny: 20, category: '鸡肉汉堡/卷' },
+      { code: 'd1', name: '圆筒A', priceCny: 5, category: '甜品冰淇淋' },
+      { code: 'd2', name: '圆筒B', priceCny: 5, category: '甜品冰淇淋' },
+      { code: 'd3', name: '圆筒C', priceCny: 5, category: '甜品冰淇淋' },
+    ];
+    const result = buildCandidates(menu, { ...base, requireKeyword: '汉堡', minItems: 1, maxItems: 2, budget: { amountCny: 40 } });
+    const signatures = result.candidates.map((c) => `${c.items.length}:${c.items.map((i) => i.code).sort().join('+')}`);
+    expect(signatures).toEqual(['1:burger', '2:burger+d1']);
+  });
+
+  it('tells the user which categories exist when a keyword matches nothing', () => {
+    const menu: OptimizerItem[] = [
+      { code: 'a', name: '薯条', priceCny: 14.5, category: '小食' },
+      { code: 'b', name: '雪碧', priceCny: 9.5, category: '饮品' },
+    ];
+    const result = buildCandidates(menu, { ...base, requireKeyword: '饮料' });
+    expect(result.errorCode).toBe('E211');
+    expect(result.message).toContain('小食');
+    expect(result.message).toContain('饮品');
+  });
+
   it('E211 when nothing in the menu matches the required keyword', () => {
     const result = buildCandidates(MENU, { ...base, requireKeyword: '披萨' });
     expect(result.ok).toBe(false);

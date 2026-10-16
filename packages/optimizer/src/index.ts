@@ -77,31 +77,50 @@ export function buildCandidates(
   const menuSize = menu.length;
 
   const allowed = menu.filter((item) => !ir.excludeKeywords.some((bad) => matches(item, bad)));
-  const requiredPresent = ir.requireKeyword ? allowed.filter((item) => matches(item, ir.requireKeyword)) : allowed;
+  // Keywords select *which* items satisfy the request, not *what the rest of the
+  // meal may be built from. Requiring "汉堡" must still allow 汉堡 + 薯条 — so
+  // combinations are enumerated over the whole allowed menu and then filtered to
+  // those containing at least one hit. (Restricting the pool to hits only made
+  // every multi-item request impossible unless it repeated the same food type.)
+  const hits = ir.requireKeyword ? allowed.filter((item) => matches(item, ir.requireKeyword)) : allowed;
+  const categories = [...new Set(allowed.map((item) => item.category).filter((c): c is string => Boolean(c)))];
 
   const stats = (enumerated: number, exhaustive: boolean, extra = ''): OptimizerStats => ({
     menuSize,
     allowedSize: allowed.length,
     enumerated,
-    searchScope: `在 ${ir.minItems}–${ir.maxItems} 件窗口内搜索，允许集 ${allowed.length} 件${extra}`,
+    searchScope:
+      `在 ${ir.minItems}–${ir.maxItems} 件窗口内搜索，允许集 ${allowed.length} 件` +
+      (ir.requireKeyword ? `（关键词「${ir.requireKeyword}」命中 ${hits.length} 件）` : '') +
+      extra,
     exhaustive,
   });
 
-  if (requiredPresent.length === 0) {
+  if (allowed.length === 0) {
     return {
       ok: false,
       candidates: [],
       errorCode: 'E211',
-      message: ir.requireKeyword
-        ? `当前门店可售商品中没有匹配「${ir.requireKeyword}」的商品`
-        : '排除后没有任何可售商品',
-      stats: stats(0, true, ir.requireKeyword ? `，关键词「${ir.requireKeyword}」命中 0 件` : ''),
+      message: '排除后没有任何可售商品',
+      stats: stats(0, true),
+    };
+  }
+
+  if (ir.requireKeyword && hits.length === 0) {
+    return {
+      ok: false,
+      candidates: [],
+      errorCode: 'E211',
+      message:
+        `当前门店可售商品中没有匹配「${ir.requireKeyword}」的商品` +
+        (categories.length ? `；可用分类：${categories.join('、')}` : ''),
+      stats: stats(0, true, `，关键词「${ir.requireKeyword}」命中 0 件`),
     };
   }
 
   // Ascending price: lets us break out of the inner loops as soon as the
   // running total exceeds the budget, which keeps the search bounded.
-  const pool = [...requiredPresent].sort((a, b) => a.priceCny - b.priceCny);
+  const pool = [...allowed].sort((a, b) => a.priceCny - b.priceCny);
   const candidates: Candidate[] = [];
   let enumerated = 0;
   let truncated = false;
@@ -142,22 +161,21 @@ export function buildCandidates(
     }
   }
 
-  // A meal must contain at least one item matching require_keyword. `pool` is
-  // already the require-matching set, so every single-item candidate qualifies;
-  // multi-item candidates qualify by containing at least one pool member.
+  // A meal must contain at least one item matching require_keyword; the other
+  // items may be anything the store sells (that survived exclude_keywords).
   const qualified = candidates.filter((candidate) =>
     ir.requireKeyword ? candidate.items.some((item) => matches(item, ir.requireKeyword)) : true,
   );
 
   qualified.sort((x, y) => x.menuTotalCny - y.menuTotalCny);
-  const top = qualified.slice(0, topK);
+  const top = ir.requireKeyword ? pickDiverse(qualified, topK, ir.requireKeyword) : qualified.slice(0, topK);
 
   if (top.length === 0) {
     return {
       ok: false,
       candidates: [],
       errorCode: 'E220',
-      message: `在已枚举的 ${enumerated} 个组合中，没有菜单价不超过 ${budget} 元的组合`,
+      message: `在已枚举的 ${enumerated} 个组合中，没有菜单价不超过 ${budget} 元的组合（可提高预算，或把 min_items 调到 ${Math.max(1, ir.minItems - 1)} 试试）`,
       stats: stats(enumerated, !truncated),
     };
   }
@@ -165,8 +183,42 @@ export function buildCandidates(
   return {
     ok: true,
     candidates: top,
-    stats: stats(enumerated, !truncated, truncated ? '，枚举已被上限截断' : ''),
+    stats: stats(
+      enumerated,
+      !truncated,
+      (truncated ? '，枚举已被上限截断' : '') +
+        (ir.requireKeyword ? `，已按主料与件数去重（${top.length} 个方案）` : ''),
+    ),
   };
+}
+
+/**
+ * Pick up to `topK` candidates that are not all the *same* required item padded
+ * with a cheaper side dish.
+ *
+ * `min(total_price)` alone returns three meals that differ only by which ¥5
+ * dessert fills the gap — mathematically correct, useless as a choice. Two
+ * candidates are treated as duplicates when they have the same item count and
+ * the same set of keyword hits, so the report shows e.g. three different burgers
+ * instead of one burger three times.
+ */
+function pickDiverse(candidates: Candidate[], topK: number, keyword: string): Candidate[] {
+  const picked: Candidate[] = [];
+  const seen = new Set<string>();
+
+  for (const candidate of candidates) {
+    if (picked.length >= topK) break;
+    const hits = candidate.items
+      .filter((item) => matches(item, keyword))
+      .map((item) => item.code)
+      .sort();
+    const signature = `${candidate.items.length}:${hits.join(',')}`;
+    if (seen.has(signature)) continue;
+    seen.add(signature);
+    picked.push(candidate);
+  }
+
+  return picked;
 }
 
 function round2(value: number): number {

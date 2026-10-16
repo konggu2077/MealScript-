@@ -3,7 +3,7 @@
 <p align="left">
   <img alt="node &gt;= 20" src="docs/badges/node.svg">
   <img alt="workspace npm" src="docs/badges/workspace.svg">
-  <img alt="tests 89 passed" src="docs/badges/tests.svg">
+  <img alt="tests 92 passed" src="docs/badges/tests.svg">
   <img alt="license MIT" src="docs/badges/license.svg">
 </p>
 
@@ -11,7 +11,7 @@
 
 - **在线 Demo**：https://konggu2077.github.io/MealScript-/dist/mealscript.html —— 不用装任何东西，打开即用，断网也能跑
   （仓库设置里开启 Pages：`Settings → Pages → Deploy from a branch → main / (root)` 后生效）
-- **下载单文件网页**：[`dist/mealscript.html`](dist/mealscript.html)（262 KB，双击即开，CSS/JS 全内联、零外部请求）
+- **下载单文件网页**：[`dist/mealscript.html`](dist/mealscript.html)（264 KB，双击即开，CSS/JS 全内联、零外部请求）
 
 ### 目录
 
@@ -97,7 +97,7 @@ npm install
 # 1) 不依赖任何凭据，先验证编译器是真的
 npm run compile:cli examples/budget.meal
 
-# 2) 跑全部测试（89 个）
+# 2) 跑全部测试（92 个）
 npm test
 
 # 3) 启动网页 Playground
@@ -109,7 +109,7 @@ npm run dev          # → http://localhost:3000
 ### 单文件离线版（双击即开，无需安装任何东西）
 
 ```bash
-npm run build:single   # → dist/mealscript.html（约 262 KB）
+npm run build:single   # → dist/mealscript.html（约 264 KB）
 ```
 
 `dist/mealscript.html` 是一个**自包含的单文件网页**：CSS 与 JS 全部内联，**零外部请求、零凭据、离线可用**。
@@ -152,7 +152,7 @@ mealscript/
 │   └── trace/                统一执行轨迹与脱敏
 ├── examples/                 三份 .meal 示例（1 份正确 + 2 份故意写错）
 ├── fixtures/                 脱敏 Replay 案例（成功 / 失败）
-├── tests/                    89 个单元与集成测试
+├── tests/                    92 个单元与集成测试
 ├── CONTEST_DECLARATION.md    官方参赛声明原文（未改动一个字）
 ├── MCP_INTEGRATION.md        实际使用的 MCP Server / Tool / 调用流程
 ├── mcp-config.example.json   配置示例（只有占位符）
@@ -176,6 +176,13 @@ mealscript/
 
 **省略时的默认值**：`mode=pickup`、`min_items=1`、`max_items=2`、`optimize=min(total_price)`、`execution=dry_run`。
 
+**组合语义**：`require_keyword` 规定的是「这一餐里**至少要有**一件命中商品」，其余商品可以来自任意可售品类 ——
+所以 `require_keyword: "汉堡"` + `min_items: 2` 组出来的是「汉堡 + 小食/甜品/饮品」，而不是「两个汉堡」。
+
+**方案去重**：`min(total_price)` 天然会挑最便宜的组合，容易给出三个只差一件配菜的近似方案。
+因此返回前会按「件数 + 命中主料」去重，让报告展示**不同的主料/不同的件数**（例如三个不同的汉堡），
+搜索范围里会注明去重后的方案数。
+
 ### 错误码
 
 | 代码 | 名称 | 触发条件 |
@@ -186,8 +193,8 @@ mealscript/
 | E103 | SemanticConstraintError | 数量范围非法：超出 1–3，或 `min_items > max_items` |
 | E104 | SemanticConstraintError | 优化目标非法：v0.1 仅 `min(total_price)` |
 | E105 | SemanticConstraintError | 执行方式非法：v0.1 仅 `dry_run` |
-| E211 | RequiredProductNotFound | 当前菜单中无匹配商品 |
-| E220 | NoVerifiedCandidate | 已验证候选中无满足全部约束的组合 |
+| E211 | RequiredProductNotFound | 当前菜单中无匹配商品（报错里会列出该店**可用分类**，照着改关键词即可） |
+| E220 | NoVerifiedCandidate | 已枚举的组合里没有不超预算的（报错会提示调高预算或降低 `min_items`） |
 | E301 | UnavailableProduct | 商品下架或不可售 |
 | E401 | MCPAuthenticationFailed | Token 失效或缺失 |
 | E429 | MCPRateLimited | 触发官方限流 |
@@ -237,12 +244,12 @@ npm test
 
 ```
 ✓ tests/compiler.test.ts       (32 tests)
-✓ tests/optimizer.test.ts      (16 tests)
+✓ tests/optimizer.test.ts      (19 tests)
 ✓ tests/trace.test.ts          (14 tests)
 ✓ tests/verifier.test.ts       ( 7 tests)
 ✓ tests/pipeline.test.ts       (10 tests)
 ✓ tests/browser-bundle.test.ts (10 tests)
-Test Files  6 passed (6)       Tests  89 passed (89)
+Test Files  6 passed (6)       Tests  92 passed (92)
 ```
 
 覆盖：合法/非法语法、全部错误码、location 拆分、脱敏、有界搜索的边界与上限、官方价 vs 菜单价、Replay 永不冒充 Live、端到端流水线，

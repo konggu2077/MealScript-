@@ -182,9 +182,12 @@ footer code{font-family:var(--mono);color:var(--fg2)}
 (function(){
   var EXAMPLES=[
     {id:'budget',label:'经典 · 35 元要汉堡不要咖啡',src:'meal lunch {\n  location: "北京市海淀区五道口";\n  mode: pickup;\n  budget: <= 35 CNY;\n  require_keyword: "汉堡";\n  exclude_keywords: ["咖啡"];\n  min_items: 1;\n  max_items: 2;\n  optimize: min(total_price);\n  execution: dry_run;\n}'},
-    {id:'combo',label:'两件套 · 汉堡 + 小食',src:'meal combo {\n  location: "北京市海淀区五道口";\n  mode: pickup;\n  budget: <= 30 CNY;\n  require_keyword: "汉堡";\n  exclude_keywords: ["咖啡"];\n  min_items: 2;\n  max_items: 2;\n  optimize: min(total_price);\n  execution: dry_run;\n}'},
+    {id:'combo',label:'两件套 · 汉堡再配一件',src:'meal combo {\n  location: "北京市海淀区五道口";\n  mode: pickup;\n  budget: <= 30 CNY;\n  require_keyword: "汉堡";\n  min_items: 2;\n  max_items: 2;\n  optimize: min(total_price);\n  execution: dry_run;\n}'},
+    {id:'category',label:'按分类点 · 甜品 ≤ 20 元',src:'meal dessert {\n  location: "北京市海淀区五道口";\n  mode: pickup;\n  budget: <= 20 CNY;\n  require_keyword: "甜品";\n  min_items: 1;\n  max_items: 2;\n  optimize: min(total_price);\n  execution: dry_run;\n}'},
+    {id:'drink',label:'按分类点 · 饮品 ≤ 15 元',src:'meal drink {\n  location: "北京市海淀区五道口";\n  mode: pickup;\n  budget: <= 15 CNY;\n  require_keyword: "饮品";\n  exclude_keywords: ["咖啡"];\n  min_items: 1;\n  max_items: 1;\n  optimize: min(total_price);\n  execution: dry_run;\n}'},
     {id:'syntax',label:'故意写错 · 漏分号 E001',src:'meal lunch {\n  location: "北京市海淀区五道口";\n  mode: pickup;\n  budget: <= 35 CNY\n  require_keyword: "汉堡";\n  optimize: min(total_price);\n  execution: dry_run;\n}'},
     {id:'semantic',label:'故意写错 · 负预算 + 外送 E101/E102',src:'meal lunch {\n  location: "北京市海淀区五道口";\n  mode: delivery;\n  budget: <= -10 CNY;\n  require_keyword: "汉堡";\n  optimize: min(total_price);\n  execution: dry_run;\n}'},
+    {id:'unknown',label:'不存在的词 · 饮料 E211',src:'meal drink {\n  location: "北京市海淀区五道口";\n  mode: pickup;\n  budget: <= 15 CNY;\n  require_keyword: "饮料";\n  min_items: 1;\n  max_items: 1;\n  optimize: min(total_price);\n  execution: dry_run;\n}'},
     {id:'impossible',label:'预算过低 · 无可行组合 E220',src:'meal tiny {\n  location: "北京市海淀区五道口";\n  mode: pickup;\n  budget: <= 3 CNY;\n  require_keyword: "汉堡";\n  min_items: 1;\n  max_items: 1;\n  optimize: min(total_price);\n  execution: dry_run;\n}'}
   ];
   var PHASES=['parse','check','menu','optimize','price','result'];
