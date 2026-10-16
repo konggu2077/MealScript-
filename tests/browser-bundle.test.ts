@@ -138,9 +138,19 @@ describe('single-file UI glue (DOM stub)', () => {
       c.parentNode = o;
       return c;
     };
-    o.addEventListener = () => {};
+    // The glue registers listeners (input/keydown/...); keep them so tests
+    // can fire synthetic events.
+    o.listeners = {} as Record<string, Array<(e: any) => void>>;
+    o.addEventListener = (type: string, fn: (e: any) => void) => {
+      (o.listeners[type] ||= []).push(fn);
+    };
     o.setAttribute = () => {};
+    o.focus = () => {};
     return o;
+  }
+
+  function fire(el: any, type: string, event: any = {}) {
+    for (const fn of el.listeners?.[type] ?? []) fn(event);
   }
 
   async function loadPage() {
@@ -149,7 +159,14 @@ describe('single-file UI glue (DOM stub)', () => {
     expect(scripts.length).toBeGreaterThanOrEqual(2);
     const ids: Record<string, any> = {};
     const documentStub: any = {
-      getElementById: (id: string) => ids[id] || (ids[id] = makeEl('div#' + id)),
+      getElementById: (id: string) => {
+        if (!ids[id]) {
+          ids[id] = makeEl('div#' + id);
+          // The glue mounts the autocomplete popup on ta.parentNode.
+          ids[id].parentNode = makeEl('parent-of-' + id);
+        }
+        return ids[id];
+      },
       createElement: (t: string) => makeEl(t),
       body: makeEl('body'),
     };
@@ -194,5 +211,63 @@ describe('single-file UI glue (DOM stub)', () => {
     expect(ids['diags'].children.length).toBeGreaterThan(0);
     const first = ids['diags'].children[0];
     expect(first.children[0].children[0].textContent).toBe('E101');
+  });
+
+  it('suggests menu categories, products and tags while typing a keyword', async () => {
+    const { ids } = await loadPage();
+    const src = ids['src'];
+    const editorBox = src.parentNode;
+    const acEl = () => editorBox.children.find((c: any) => c.className === 'ac');
+
+    // Caret inside the quotes of require_keyword, empty partial → full pool.
+    src.value = 'meal x {\n  require_keyword: "';
+    src.selectionStart = src.selectionEnd = src.value.length;
+    fire(src, 'input');
+    expect(acEl().style.display).toBe('block');
+    const all = acEl().children.map((c: any) => c.children[0].textContent);
+    expect(all).toContain('小食'); // category
+    expect(all.length).toBeLessThanOrEqual(8);
+
+    // Typing a partial filters the pool to matching products.
+    src.value = 'meal x {\n  require_keyword: "麦旋';
+    src.selectionStart = src.selectionEnd = src.value.length;
+    fire(src, 'input');
+    const filtered = acEl().children.map((c: any) => c.children[0].textContent);
+    expect(filtered.length).toBeGreaterThan(0);
+    expect(filtered.every((t: string) => t.includes('麦旋'))).toBe(true);
+  });
+
+  it('suggests enum values after mode: / execution: and field names otherwise', async () => {
+    const { ids } = await loadPage();
+    const src = ids['src'];
+    const acEl = () => src.parentNode.children.find((c: any) => c.className === 'ac');
+
+    src.value = 'meal x {\n  mode: p';
+    src.selectionStart = src.selectionEnd = src.value.length;
+    fire(src, 'input');
+    const vals = acEl().children.map((c: any) => c.children[0].textContent);
+    expect(vals).toEqual(['pickup']);
+
+    src.value = 'meal x {\n  ex';
+    src.selectionStart = src.selectionEnd = src.value.length;
+    fire(src, 'input');
+    const fields = acEl().children.map((c: any) => c.children[0].textContent);
+    expect(fields).toContain('execution');
+    expect(fields).toContain('exclude_keywords');
+  });
+
+  it('a category keyword like 小食 produces a verified result end to end', async () => {
+    const { ids } = await loadPage();
+    ids['src'].value =
+      'meal snack {\n  location: "北京市海淀区五道口";\n  mode: pickup;\n  budget: <= 35 CNY;\n' +
+      '  require_keyword: "小食";\n  min_items: 1;\n  max_items: 2;\n  optimize: min(total_price);\n  execution: dry_run;\n}';
+    ids['run'].onclick();
+    await new Promise((r) => setTimeout(r, 400));
+    const resultText = ids['result'].children
+      .flatMap((c: any) => c.children ?? [])
+      .map((c: any) => c.textContent ?? '')
+      .join(' ');
+    expect(resultText).toContain('¥');
+    expect(ids['runHint'].textContent).toMatch(/^完成 · /);
   });
 });

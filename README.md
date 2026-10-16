@@ -3,7 +3,7 @@
 <p align="left">
   <img alt="node &gt;= 20" src="docs/badges/node.svg">
   <img alt="workspace npm" src="docs/badges/workspace.svg">
-  <img alt="tests 82 passed" src="docs/badges/tests.svg">
+  <img alt="tests 89 passed" src="docs/badges/tests.svg">
   <img alt="license MIT" src="docs/badges/license.svg">
 </p>
 
@@ -11,7 +11,7 @@
 
 - **在线 Demo**：https://konggu2077.github.io/MealScript-/dist/mealscript.html —— 不用装任何东西，打开即用，断网也能跑
   （仓库设置里开启 Pages：`Settings → Pages → Deploy from a branch → main / (root)` 后生效）
-- **下载单文件网页**：[`dist/mealscript.html`](dist/mealscript.html)（256 KB，双击即开，CSS/JS 全内联、零外部请求）
+- **下载单文件网页**：[`dist/mealscript.html`](dist/mealscript.html)（262 KB，双击即开，CSS/JS 全内联、零外部请求）
 
 ### 目录
 
@@ -97,7 +97,7 @@ npm install
 # 1) 不依赖任何凭据，先验证编译器是真的
 npm run compile:cli examples/budget.meal
 
-# 2) 跑全部测试（82 个）
+# 2) 跑全部测试（89 个）
 npm test
 
 # 3) 启动网页 Playground
@@ -109,12 +109,16 @@ npm run dev          # → http://localhost:3000
 ### 单文件离线版（双击即开，无需安装任何东西）
 
 ```bash
-npm run build:single   # → dist/mealscript.html（约 256 KB）
+npm run build:single   # → dist/mealscript.html（约 262 KB）
 ```
 
 `dist/mealscript.html` 是一个**自包含的单文件网页**：CSS 与 JS 全部内联，**零外部请求、零凭据、离线可用**。
 编译器、语义检查、组合搜索、价格校验全部在浏览器里真实运行；门店与价格来自一次真实会话的**脱敏录制样例**，
 所以它的状态恒为 `REPLAY_RESULT`，永远不会伪装成 `BUILD_PASSED`。
+
+编辑器带**自动补全**：输入字段名、枚举取值（`pickup` / `dry_run` …）时有候选弹窗；
+在 `require_keyword` / `exclude_keywords` 的引号里输入时，会从菜单数据里实时联想**分类、商品、标签**
+（如 `小食`、`麦旋风`、`爆款`），↑↓ 选择、Tab/Enter 确认、Esc 关闭。
 
 它已提交进仓库，也可以直接从 GitHub 下载后双击打开。构建时 `@mealscript/mcp-adapter` 被强制解析为
 `browser.ts`，因此 `node:fs`、MCP SDK 与任何 Token 都不可能进入产物（有测试守着这条边界）。
@@ -148,7 +152,7 @@ mealscript/
 │   └── trace/                统一执行轨迹与脱敏
 ├── examples/                 三份 .meal 示例（1 份正确 + 2 份故意写错）
 ├── fixtures/                 脱敏 Replay 案例（成功 / 失败）
-├── tests/                    82 个单元与集成测试
+├── tests/                    89 个单元与集成测试
 ├── CONTEST_DECLARATION.md    官方参赛声明原文（未改动一个字）
 ├── MCP_INTEGRATION.md        实际使用的 MCP Server / Tool / 调用流程
 ├── mcp-config.example.json   配置示例（只有占位符）
@@ -164,7 +168,7 @@ mealscript/
 | `location` | 字符串，门店发现用的位置文本 | 缺失或空 → E001 |
 | `mode` | v0.1 仅 `pickup` | `delivery` → E102 |
 | `budget` | `<= 金额 CNY`，金额为正 | `-10` / `USD` → E101 |
-| `require_keyword` | 非空 UTF-8 文本 | 空串 → E001；无匹配商品 → E211 |
+| `require_keyword` | 非空 UTF-8 文本，按**商品名 / 分类名 / 标签**匹配（如 `汉堡`、`小食`、`甜品`、`咖啡` 都有效） | 空串 → E001；无匹配商品 → E211 |
 | `exclude_keywords` | 字符串数组 | 非法数组 → E001 |
 | `min_items` / `max_items` | 整数 1–3 | 越界或 `min > max` → E103 |
 | `optimize` | v0.1 仅 `min(total_price)` | `max(protein)` → E104 |
@@ -233,12 +237,12 @@ npm test
 
 ```
 ✓ tests/compiler.test.ts       (32 tests)
-✓ tests/optimizer.test.ts      (14 tests)
+✓ tests/optimizer.test.ts      (16 tests)
 ✓ tests/trace.test.ts          (14 tests)
 ✓ tests/verifier.test.ts       ( 7 tests)
 ✓ tests/pipeline.test.ts       (10 tests)
-✓ tests/browser-bundle.test.ts ( 5 tests)
-Test Files  6 passed (6)       Tests  82 passed (82)
+✓ tests/browser-bundle.test.ts (10 tests)
+Test Files  6 passed (6)       Tests  89 passed (89)
 ```
 
 覆盖：合法/非法语法、全部错误码、location 拆分、脱敏、有界搜索的边界与上限、官方价 vs 菜单价、Replay 永不冒充 Live、端到端流水线，

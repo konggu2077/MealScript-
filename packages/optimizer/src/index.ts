@@ -50,6 +50,9 @@ const DEFAULT_MAX_COMBINATIONS = 20000;
 function matches(item: OptimizerItem, keyword: string): boolean {
   if (!keyword) return true;
   if (item.name.includes(keyword)) return true;
+  // Category names like "小食" / "饮品" / "甜品冰淇淋" are what users naturally
+  // type as keywords, so they must participate in matching too.
+  if (item.category && item.category.includes(keyword)) return true;
   return (item.tags ?? []).some((tag) => tag.includes(keyword));
 }
 

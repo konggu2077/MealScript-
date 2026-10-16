@@ -49,6 +49,12 @@ header{display:flex;flex-wrap:wrap;align-items:center;gap:12px;padding:4px 0 0;m
 .editor pre{position:absolute;inset:0;overflow:auto;pointer-events:none;color:var(--fg)}
 .editor textarea{position:absolute;inset:0;width:100%;height:100%;resize:none;background:transparent;color:transparent;caret-color:var(--gold);outline:0;overflow:auto}
 .editor textarea::selection{background:rgba(245,194,66,.25)}
+.ac-mirror{position:absolute;top:0;left:0;visibility:hidden;pointer-events:none;box-sizing:border-box;margin:0;padding:12px 14px;font-family:var(--mono);font-size:13px;line-height:1.7;tab-size:2;white-space:pre;word-wrap:normal;border:0}
+.ac{position:absolute;z-index:30;min-width:190px;max-width:300px;max-height:206px;overflow:auto;background:#161b24;border:1px solid var(--line2);border-radius:8px;box-shadow:0 10px 28px rgba(0,0,0,.5);padding:4px;font-family:var(--mono);font-size:12.5px;line-height:1.5}
+.ac .it{display:flex;align-items:baseline;justify-content:space-between;gap:14px;padding:4px 9px;border-radius:5px;cursor:pointer;color:var(--fg);white-space:nowrap}
+.ac .it.on{background:rgba(245,194,66,.14);color:var(--gold)}
+.ac .it .kd{color:var(--fg3);font-size:11px;flex:none}
+.ac .it.on .kd{color:var(--gold)}
 .k{color:var(--gold)}.s{color:var(--str)}.n{color:var(--blue)}.c{color:#5d6673;font-style:italic}.p{color:#8b949e}.u{color:var(--teal)}.pr{color:var(--fg2)}
 .actions{display:flex;align-items:center;gap:10px;margin-top:12px}
 button.run{font-family:var(--sans);font-size:14px;font-weight:600;padding:9px 22px;border-radius:9px;border:1px solid var(--gold);background:var(--gold);color:#1a1300;cursor:pointer}
@@ -363,11 +369,125 @@ footer code{font-family:var(--mono);color:var(--fg2)}
       runHint.textContent='运行时错误：'+(err&&err.message?err.message:String(err));
     }).then(function(){busy=false;runBtn.disabled=false;});
   }
+
+  /* ---------- autocomplete ---------- */
+  var editorBox=ta.parentNode;
+  var mirror=document.createElement('div');mirror.className='ac-mirror';editorBox.appendChild(mirror);
+  var ac=document.createElement('div');ac.className='ac';ac.style.display='none';editorBox.appendChild(ac);
+  var acItems=[],acIndex=0,acCtx=null;
+  var FIELD_SNIPPETS={
+    'location':'location: "|"','mode':'mode: |','budget':'budget: <= | CNY',
+    'require_keyword':'require_keyword: "|"','exclude_keywords':'exclude_keywords: ["|"]',
+    'min_items':'min_items: |','max_items':'max_items: |','optimize':'optimize: |','execution':'execution: |'
+  };
+  var VALUE_SUGGEST={mode:['pickup','delivery'],execution:['dry_run','live'],optimize:['min(total_price)']};
+  function acHide(){ac.style.display='none';acCtx=null;}
+  function keywordPool(){
+    var kw=(MS&&MS.KEYWORDS)||{categories:[],products:[],tags:[]};
+    var pool=[],seen={};
+    function add(list,kd){list.forEach(function(s){if(seen[s])return;seen[s]=1;pool.push({text:s,kd:kd});});}
+    add(kw.categories,'分类');add(kw.products,'商品');add(kw.tags,'标签');
+    return pool;
+  }
+  function detectCtx(){
+    var pos=ta.selectionStart,val=ta.value;
+    if(pos!==ta.selectionEnd)return null;
+    var q=-1;
+    for(var j=0;j<pos;j++){if(val[j]==='"'&&val[j-1]!=='\\')q=q<0?j:-1;}
+    if(q>=0){
+      var fm=/(require_keyword|exclude_keywords|location)\s*:\s*(?:\[[^\]\n]*)?$/.exec(val.slice(0,q));
+      if(!fm||fm[1]==='location')return null;
+      return {kind:'keyword',start:q+1,partial:val.slice(q+1,pos)};
+    }
+    var head=val.slice(0,pos);
+    var vm=/(mode|execution|optimize)\s*:\s*([A-Za-z_()]*)$/.exec(head);
+    if(vm)return {kind:'value',field:vm[1],start:pos-vm[2].length,partial:vm[2]};
+    var im=/([A-Za-z_][A-Za-z0-9_]*)$/.exec(head);
+    if(im)return {kind:'field',start:pos-im[1].length,partial:im[1]};
+    return null;
+  }
+  function filterPool(pool,partial){
+    var p=partial.toLowerCase(),starts=[],contains=[];
+    pool.forEach(function(it){
+      var t=it.text.toLowerCase();
+      if(!p||t.indexOf(p)===0)starts.push(it);
+      else if(t.indexOf(p)>0)contains.push(it);
+    });
+    return starts.concat(contains).slice(0,8);
+  }
+  function caretXY(){
+    mirror.style.width=ta.clientWidth+'px';
+    mirror.textContent=ta.value.slice(0,ta.selectionStart);
+    var mk=document.createElement('span');mk.textContent='​';mirror.appendChild(mk);
+    return {x:mk.offsetLeft,y:mk.offsetTop};
+  }
+  function renderAc(){
+    ac.innerHTML='';
+    acItems.forEach(function(it,i){
+      var d=document.createElement('div');d.className='it'+(i===acIndex?' on':'');
+      var t=document.createElement('span');t.textContent=it.text;
+      var k=document.createElement('span');k.className='kd';k.textContent=it.kd;
+      d.appendChild(t);d.appendChild(k);
+      d.onmousedown=function(e){e.preventDefault();acAccept(i);};
+      ac.appendChild(d);
+    });
+    var on=ac.children[acIndex];
+    if(on){
+      if(on.offsetTop<ac.scrollTop)ac.scrollTop=on.offsetTop;
+      else if(on.offsetTop+on.offsetHeight>ac.scrollTop+ac.clientHeight)ac.scrollTop=on.offsetTop-ac.clientHeight+on.offsetHeight;
+    }
+  }
+  function acUpdate(){
+    acCtx=detectCtx();
+    if(!acCtx){acHide();return;}
+    var pool;
+    if(acCtx.kind==='keyword')pool=keywordPool();
+    else if(acCtx.kind==='value')pool=VALUE_SUGGEST[acCtx.field].map(function(s){return {text:s,kd:'取值'};});
+    else pool=Object.keys(FIELD_SNIPPETS).map(function(s){return {text:s,kd:'字段'};});
+    acItems=filterPool(pool,acCtx.partial);
+    if(!acItems.length){acHide();return;}
+    acIndex=0;renderAc();
+    var xy=caretXY(),top=xy.y-ta.scrollTop+24;
+    ac.style.visibility='hidden';ac.style.display='block';
+    var h=ac.offsetHeight,w=ac.offsetWidth;
+    if(top+h>ta.clientHeight)top=xy.y-ta.scrollTop-h-2;
+    ac.style.left=Math.max(0,Math.min(xy.x-ta.scrollLeft,ta.clientWidth-w-4))+'px';
+    ac.style.top=Math.max(0,top)+'px';
+    ac.style.visibility='';
+  }
+  function acAccept(i){
+    var it=acItems[i];
+    if(!it||!acCtx)return;
+    var pos=ta.selectionStart,val=ta.value;
+    if(acCtx.kind==='field'){
+      var snip=FIELD_SNIPPETS[it.text]||it.text;
+      var marker=snip.indexOf('|');
+      var text=snip.replace('|','');
+      ta.value=val.slice(0,acCtx.start)+text+val.slice(pos);
+      ta.selectionStart=ta.selectionEnd=marker>=0?acCtx.start+marker:acCtx.start+text.length;
+    }else{
+      ta.value=val.slice(0,acCtx.start)+it.text+val.slice(pos);
+      ta.selectionStart=ta.selectionEnd=acCtx.start+it.text.length;
+    }
+    acHide();sync();ta.focus();acUpdate();
+  }
+  ta.addEventListener('input',function(){sync();acUpdate();});
+  ta.addEventListener('click',acUpdate);
+  ta.addEventListener('keyup',function(e){
+    if(['ArrowLeft','ArrowRight','Home','End','PageUp','PageDown'].indexOf(e.key)>=0)acUpdate();
+  });
+  ta.addEventListener('blur',function(){setTimeout(acHide,120);});
+
   runBtn.onclick=build;
-  ta.addEventListener('input',sync);
-  ta.addEventListener('scroll',function(){hl.parentNode.scrollTop=ta.scrollTop;hl.parentNode.scrollLeft=ta.scrollLeft;});
+  ta.addEventListener('scroll',function(){hl.parentNode.scrollTop=ta.scrollTop;hl.parentNode.scrollLeft=ta.scrollLeft;acHide();});
   ta.addEventListener('keydown',function(e){
     if((e.ctrlKey||e.metaKey)&&e.key==='Enter'){e.preventDefault();build();return;}
+    if(acCtx&&ac.style.display!=='none'){
+      if(e.key==='ArrowDown'){e.preventDefault();acIndex=(acIndex+1)%acItems.length;renderAc();return;}
+      if(e.key==='ArrowUp'){e.preventDefault();acIndex=(acIndex-1+acItems.length)%acItems.length;renderAc();return;}
+      if(e.key==='Enter'||e.key==='Tab'){e.preventDefault();acAccept(acIndex);return;}
+      if(e.key==='Escape'){e.preventDefault();acHide();return;}
+    }
     if(e.key==='Tab'){e.preventDefault();
       var s=ta.selectionStart,e0=ta.selectionEnd;
       ta.value=ta.value.slice(0,s)+'  '+ta.value.slice(e0);

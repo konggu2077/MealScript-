@@ -41,6 +41,31 @@ describe('bounded combination search', () => {
     expect(result.ok).toBe(true);
   });
 
+  it('matches the required keyword against category names too', () => {
+    // Users naturally type category names like "小食" / "饮品" as keywords.
+    const categorized: OptimizerItem[] = [
+      { code: 'a', name: '薯条', priceCny: 14.5, category: '小食' },
+      { code: 'b', name: '圆筒冰淇淋', priceCny: 5, category: '甜品冰淇淋' },
+    ];
+    const snack = buildCandidates(categorized, { ...base, requireKeyword: '小食' });
+    expect(snack.ok).toBe(true);
+    expect(snack.candidates[0]?.items[0]?.code).toBe('a');
+    const dessert = buildCandidates(categorized, { ...base, requireKeyword: '甜品' });
+    expect(dessert.ok).toBe(true);
+    expect(dessert.candidates[0]?.items[0]?.code).toBe('b');
+  });
+
+  it('excludes items by category keyword as well', () => {
+    const categorized: OptimizerItem[] = [
+      { code: 'a', name: '鲜萃美式', priceCny: 9.5, category: '麦咖啡™' },
+      { code: 'b', name: '薯条', priceCny: 14.5, category: '小食' },
+    ];
+    const result = buildCandidates(categorized, { ...base, excludeKeywords: ['咖啡'], minItems: 1, maxItems: 1 });
+    const codes = result.candidates.flatMap((c) => c.items.map((i) => i.code));
+    expect(codes).not.toContain('a');
+    expect(codes).toContain('b');
+  });
+
   it('E211 when nothing in the menu matches the required keyword', () => {
     const result = buildCandidates(MENU, { ...base, requireKeyword: '披萨' });
     expect(result.ok).toBe(false);

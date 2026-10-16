@@ -35,11 +35,21 @@ describe('end-to-end build (replay fixtures)', () => {
     expect(result.trace.mode).toBe('replay');
   });
 
-  it('picks a real product that satisfies require_keyword and avoids exclude_keywords', async () => {
+  it('picks a real product that satisfies require_keyword (name, tag or category) and avoids exclude_keywords', async () => {
+    // Keyword matching covers product names, tags AND category names, so
+    // "汉堡" may legitimately pick 麦香鸡 (category 鸡肉汉堡/卷).
+    const fixture = loadFixture(fixturePath('replay-success'));
+    const data = (fixture.tools['query-meals'] as { result: { data: { categories: Array<{ name: string; meals?: Array<{ code: string }> }> } } }).result.data;
+    const categoryOf = new Map<string, string>();
+    for (const c of data.categories) for (const m of c.meals ?? []) categoryOf.set(m.code, c.name);
+
     const result = await runBuild(SOURCE, success());
-    const names = result.verified[0]?.lines.map((line) => line.productName) ?? [];
-    expect(names.join('')).toContain('汉堡');
-    expect(names.join('')).not.toContain('咖啡');
+    const lines = result.verified[0]?.lines ?? [];
+    const hit = lines.some(
+      (l) => l.productName.includes('汉堡') || (categoryOf.get(l.productCode) ?? '').includes('汉堡'),
+    );
+    expect(hit).toBe(true);
+    expect(lines.map((l) => l.productName).join('')).not.toContain('咖啡');
   });
 
   it('records the real tool calls in the trace', async () => {
