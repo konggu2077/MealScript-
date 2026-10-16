@@ -14,6 +14,7 @@ coverage/
 # (note: `dir/*` + `!dir/file` — git cannot un-ignore inside an ignored dir)
 !dist/mealscript.html
 !build/single.mjs
+!build/record-fixture.ts
 !build/
 
 # ---- secrets (NEVER commit) ----
