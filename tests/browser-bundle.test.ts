@@ -108,6 +108,23 @@ describe('single-file HTML output', () => {
  * mistakes (missing ids, wrong field names, broken renderers) fail here.
  */
 describe('single-file UI glue (DOM stub)', () => {
+  /**
+   * The page's autocomplete dictionary is derived from the fixture, so tests
+   * derive their expectations the same way instead of naming specific products —
+   * a refreshed capture then can't turn into a false failure.
+   */
+  function sandboxKeywords(): { categories: string[]; products: string[]; tags: string[] } {
+    const fixture = JSON.parse(readFileSync(join(root, 'fixtures/replay-success.json'), 'utf8')) as {
+      tools: Record<string, { result: { data: { categories: Array<{ name: string; meals?: Array<{ tags?: string[] }> }>; meals: Record<string, { name: string }> } } }>;
+    };
+    const data = fixture.tools['query-meals']!.result.data;
+    return {
+      categories: data.categories.map((c) => c.name),
+      products: Object.values(data.meals).map((m) => m.name),
+      tags: [...new Set(data.categories.flatMap((c) => (c.meals ?? []).flatMap((m) => m.tags ?? [])))],
+    };
+  }
+
   function makeEl(tag: string): any {
     const o: any = {
       tag,
@@ -219,22 +236,43 @@ describe('single-file UI glue (DOM stub)', () => {
     const editorBox = src.parentNode;
     const acEl = () => editorBox.children.find((c: any) => c.className === 'ac');
 
+    // Expectations come from the fixture, so refreshing the capture
+    // (`npm run fixture:record`) keeps this test honest.
+    const keywords = sandboxKeywords();
+    const firstCategory = keywords.categories[0]!;
+    const sampleProduct = keywords.products.find((p) => p.length >= 3) ?? keywords.products[0]!;
+    const partial = sampleProduct.slice(0, 2);
+
     // Caret inside the quotes of require_keyword, empty partial → full pool.
     src.value = 'meal x {\n  require_keyword: "';
     src.selectionStart = src.selectionEnd = src.value.length;
     fire(src, 'input');
     expect(acEl().style.display).toBe('block');
     const all = acEl().children.map((c: any) => c.children[0].textContent);
-    expect(all).toContain('小食'); // category
+    expect(all).toContain(firstCategory);
     expect(all.length).toBeLessThanOrEqual(8);
 
     // Typing a partial filters the pool to matching products.
-    src.value = 'meal x {\n  require_keyword: "麦旋';
+    src.value = `meal x {\n  require_keyword: "${partial}`;
     src.selectionStart = src.selectionEnd = src.value.length;
     fire(src, 'input');
     const filtered = acEl().children.map((c: any) => c.children[0].textContent);
     expect(filtered.length).toBeGreaterThan(0);
-    expect(filtered.every((t: string) => t.includes('麦旋'))).toBe(true);
+    expect(filtered.every((t: string) => t.includes(partial))).toBe(true);
+  });
+
+  it('suggests real locations while typing inside location quotes', async () => {
+    const { ids } = await loadPage();
+    const src = ids['src'];
+    const acEl = () => src.parentNode.children.find((c: any) => c.className === 'ac');
+
+    src.value = 'meal x {\n  location: "北京市朝';
+    src.selectionStart = src.selectionEnd = src.value.length;
+    fire(src, 'input');
+    expect(acEl().style.display).toBe('block');
+    const places = acEl().children.map((c: any) => c.children[0].textContent);
+    expect(places.length).toBeGreaterThan(0);
+    expect(places.every((t: string) => t.includes('北京市朝'))).toBe(true);
   });
 
   it('suggests enum values after mode: / execution: and field names otherwise', async () => {
@@ -256,11 +294,12 @@ describe('single-file UI glue (DOM stub)', () => {
     expect(fields).toContain('exclude_keywords');
   });
 
-  it('a category keyword like 小食 produces a verified result end to end', async () => {
+  it('a category keyword produces a verified result end to end', async () => {
     const { ids } = await loadPage();
+    const category = sandboxKeywords().categories[0]!;
     ids['src'].value =
-      'meal snack {\n  location: "北京市海淀区五道口";\n  mode: pickup;\n  budget: <= 35 CNY;\n' +
-      '  require_keyword: "小食";\n  min_items: 1;\n  max_items: 2;\n  optimize: min(total_price);\n  execution: dry_run;\n}';
+      'meal snack {\n  location: "北京市海淀区五道口";\n  mode: pickup;\n  budget: <= 100 CNY;\n' +
+      `  require_keyword: "${category}";\n  min_items: 1;\n  max_items: 2;\n  optimize: min(total_price);\n  execution: dry_run;\n}`;
     ids['run'].onclick();
     await new Promise((r) => setTimeout(r, 400));
     const resultText = ids['result'].children

@@ -61,8 +61,14 @@ describe('end-to-end build (replay fixtures)', () => {
   });
 
   it('reports the store that was actually used', async () => {
+    // Derived from the fixture, not hardcoded — refreshing the capture
+    // (`npm run fixture:record`) must not break the suite.
+    const fixture = loadFixture(fixturePath('replay-success'));
+    const recorded = fixture.tools['query-nearby-stores'] as {
+      result: { data: Array<{ storeCode: string }> };
+    };
     const result = await runBuild(SOURCE, success());
-    expect(result.store?.storeCode).toBe('1950556');
+    expect(result.store?.storeCode).toBe(recorded.result.data[0]?.storeCode);
   });
 
   it('reports MCP_ERROR instead of a fake success when the server fails', async () => {

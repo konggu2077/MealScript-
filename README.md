@@ -3,7 +3,7 @@
 <p align="left">
   <img alt="node &gt;= 20" src="docs/badges/node.svg">
   <img alt="workspace npm" src="docs/badges/workspace.svg">
-  <img alt="tests 92 passed" src="docs/badges/tests.svg">
+  <img alt="tests 93 passed" src="docs/badges/tests.svg">
   <img alt="license MIT" src="docs/badges/license.svg">
 </p>
 
@@ -11,7 +11,7 @@
 
 - **在线 Demo**：https://konggu2077.github.io/MealScript-/dist/mealscript.html —— 不用装任何东西，打开即用，断网也能跑
   （仓库设置里开启 Pages：`Settings → Pages → Deploy from a branch → main / (root)` 后生效）
-- **下载单文件网页**：[`dist/mealscript.html`](dist/mealscript.html)（264 KB，双击即开，CSS/JS 全内联、零外部请求）
+- **下载单文件网页**：[`dist/mealscript.html`](dist/mealscript.html)（265 KB，双击即开，CSS/JS 全内联、零外部请求）
 
 ### 目录
 
@@ -97,7 +97,7 @@ npm install
 # 1) 不依赖任何凭据，先验证编译器是真的
 npm run compile:cli examples/budget.meal
 
-# 2) 跑全部测试（92 个）
+# 2) 跑全部测试（93 个）
 npm test
 
 # 3) 启动网页 Playground
@@ -109,7 +109,7 @@ npm run dev          # → http://localhost:3000
 ### 单文件离线版（双击即开，无需安装任何东西）
 
 ```bash
-npm run build:single   # → dist/mealscript.html（约 264 KB）
+npm run build:single   # → dist/mealscript.html（约 265 KB）
 ```
 
 `dist/mealscript.html` 是一个**自包含的单文件网页**：CSS 与 JS 全部内联，**零外部请求、零凭据、离线可用**。
@@ -134,6 +134,36 @@ npm run dev
 
 `.env` 已在 `.gitignore` 中，Token **不会**进入仓库。没有 Token 也能完整体验 Replay 模式。
 
+### 刷新产品目录与价格（录制新 fixture）
+
+拿到 Token 后，一条命令就能把门店、菜单、分类、标签和官方价全部重新抓一遍：
+
+```bash
+cp .env.example .env        # 填 MCD_MCP_TOKEN
+npm run fixture:record                                        # 用 .env 里的城市/关键词
+npm run fixture:record -- --city=上海市 --keyword=浦东新区陆家嘴
+npm run fixture:record -- --store=1950556                     # 指定门店
+```
+
+它做的事，以及它**不做**的事：
+
+- 走的就是管线用的那个**只读**适配器 —— 写操作（下单/领券/抽奖）在适配器里被硬阻断，一次都调不到
+- 逐件调 `calculate-price` 核对官方价，**只记录「官方价 = 菜单价」的非优惠商品**；有折扣的商品直接跳过，不做猜测
+- 递归脱敏：门店地址 / 经纬度 / 距离 / 图片 / traceId / 个人信息全部剔除，并在终端**逐字段打印删了什么**
+- 结束时打印与上一版的差异（商品数、新增、下架、价格变动），先 `git diff fixtures/` 复核再提交
+
+`location` 的写法与 `query-nearby-stores` 的对应关系（编译期拆分，见 `packages/compiler/src/location.ts`）：
+
+| `location` 写法 | 拆成 |
+|---|---|
+| `北京市海淀区五道口` | city=`北京市`，keyword=`海淀区五道口` |
+| `上海市浦东新区陆家嘴` | city=`上海市`，keyword=`浦东新区陆家嘴` |
+| `深圳市南山区科技园` | city=`深圳市`，keyword=`南山区科技园` |
+| `北京 五道口` | city=`北京`，keyword=`五道口` |
+
+编辑器里输入 `location` 的引号时会给出真实地点候选（北京/上海/深圳/广州/成都/杭州共 14 个）；
+换地点只影响 Live 查询 —— Replay 的门店来自录制样例，改 `location` 不会换门店，trace 里仍会如实记录你请求的城市与关键词。
+
 ---
 
 ## 目录结构
@@ -143,6 +173,7 @@ mealscript/
 ├── apps/playground/          Next.js 演示界面（Monaco 编辑器 + 阶段流 + Build Report + Trace）
 ├── apps/single/              单文件离线版的打包入口与 HTML 模板（与 Playground 共用同一套色板）
 ├── build/single.mjs          单文件构建脚本（esbuild IIFE + 内联 + 泄露扫描）
+├── build/record-fixture.ts   从实时 MCP 重新录制 fixture（只读 + 递归脱敏 + 差异报告）
 ├── dist/mealscript.html      产物：自包含单文件网页（已提交，可直接双击打开）
 ├── packages/
 │   ├── compiler/             Chevrotain 词法/语法分析、AST、语义检查、IR、错误码
@@ -152,7 +183,7 @@ mealscript/
 │   └── trace/                统一执行轨迹与脱敏
 ├── examples/                 三份 .meal 示例（1 份正确 + 2 份故意写错）
 ├── fixtures/                 脱敏 Replay 案例（成功 / 失败）
-├── tests/                    92 个单元与集成测试
+├── tests/                    93 个单元与集成测试
 ├── CONTEST_DECLARATION.md    官方参赛声明原文（未改动一个字）
 ├── MCP_INTEGRATION.md        实际使用的 MCP Server / Tool / 调用流程
 ├── mcp-config.example.json   配置示例（只有占位符）
@@ -248,8 +279,8 @@ npm test
 ✓ tests/trace.test.ts          (14 tests)
 ✓ tests/verifier.test.ts       ( 7 tests)
 ✓ tests/pipeline.test.ts       (10 tests)
-✓ tests/browser-bundle.test.ts (10 tests)
-Test Files  6 passed (6)       Tests  92 passed (92)
+✓ tests/browser-bundle.test.ts (11 tests)
+Test Files  6 passed (6)       Tests  93 passed (93)
 ```
 
 覆盖：合法/非法语法、全部错误码、location 拆分、脱敏、有界搜索的边界与上限、官方价 vs 菜单价、Replay 永不冒充 Live、端到端流水线，

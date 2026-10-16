@@ -18,7 +18,8 @@
     "dev": "npm run dev --workspace @mealscript/playground",
     "build": "npm run build --workspace @mealscript/playground",
     "build:single": "node build/single.mjs",
-    "compile:cli": "tsx packages/compiler/src/cli.ts"
+    "compile:cli": "tsx packages/compiler/src/cli.ts",
+    "fixture:record": "tsx build/record-fixture.ts"
   },
   "devDependencies": {
     "esbuild": "^0.28.2",
