@@ -190,6 +190,7 @@ footer code{font-family:var(--mono);color:var(--fg2)}
   var EXAMPLES=[
     {id:'budget',label:'经典 · 35 元要汉堡不要咖啡',src:'meal lunch {\n  location: "北京市海淀区五道口";\n  mode: pickup;\n  budget: <= 35 CNY;\n  require_keyword: "汉堡";\n  exclude_keywords: ["咖啡"];\n  min_items: 1;\n  max_items: 2;\n  optimize: min(total_price);\n  execution: dry_run;\n}'},
     {id:'combo',label:'两件套 · 汉堡再配一件',src:'meal combo {\n  location: "北京市朝阳区三里屯";\n  mode: pickup;\n  budget: <= 30 CNY;\n  require_keyword: "汉堡";\n  min_items: 2;\n  max_items: 2;\n  optimize: min(total_price);\n  execution: dry_run;\n}'},
+    {id:'multi',label:'多关键词 · 汉堡 + 麦旋风（两个都要）',src:'meal multi {\n  location: "北京市海淀区五道口";\n  mode: pickup;\n  budget: <= 45 CNY;\n  require_keyword: "巨无霸牛鱼肉堡, 麦旋风";\n  exclude_keywords: ["脆脆薯条"];\n  min_items: 2;\n  max_items: 3;\n  optimize: min(total_price);\n  execution: dry_run;\n}'},
     {id:'category',label:'按分类点 · 甜品 ≤ 20 元',src:'meal dessert {\n  location: "北京市海淀区中关村";\n  mode: pickup;\n  budget: <= 20 CNY;\n  require_keyword: "甜品";\n  min_items: 1;\n  max_items: 2;\n  optimize: min(total_price);\n  execution: dry_run;\n}'},
     {id:'drink',label:'按分类点 · 饮品 ≤ 15 元',src:'meal drink {\n  location: "北京市东城区王府井";\n  mode: pickup;\n  budget: <= 15 CNY;\n  require_keyword: "饮品";\n  exclude_keywords: ["咖啡"];\n  min_items: 1;\n  max_items: 1;\n  optimize: min(total_price);\n  execution: dry_run;\n}'},
     {id:'syntax',label:'故意写错 · 漏分号 E001',src:'meal lunch {\n  location: "北京市海淀区五道口";\n  mode: pickup;\n  budget: <= 35 CNY\n  require_keyword: "汉堡";\n  optimize: min(total_price);\n  execution: dry_run;\n}'},
@@ -407,7 +408,15 @@ footer code{font-family:var(--mono);color:var(--fg2)}
     if(q>=0){
       var fm=/(require_keyword|exclude_keywords|location)\s*:\s*(?:\[[^\]\n]*)?$/.exec(val.slice(0,q));
       if(!fm)return null;
-      return {kind:fm[1]==='location'?'location':'keyword',start:q+1,partial:val.slice(q+1,pos)};
+      var raw=val.slice(q+1,pos);
+      if(fm[1]==='location')return {kind:'location',start:q+1,partial:raw};
+      // 多关键词场景（"A, B" 或 ["A", "B"]）：只按最后一个分隔符之后的片段联想，
+      // 同时记下前面已经写过的关键词，不再重复推荐。
+      var cut=Math.max(raw.lastIndexOf(','),raw.lastIndexOf('，'),raw.lastIndexOf('、'));
+      var seg=raw.slice(cut+1);
+      var lead=(/^\s*/.exec(seg)||[''])[0].length;
+      var used=cut<0?[]:raw.slice(0,cut).split(/[,，、]/).map(function(s){return s.trim();}).filter(Boolean);
+      return {kind:'keyword',start:q+1+cut+1+lead,partial:seg.slice(lead),used:used};
     }
     var head=val.slice(0,pos);
     var vm=/(mode|execution|optimize)\s*:\s*([A-Za-z_()]*)$/.exec(head);
@@ -448,14 +457,18 @@ footer code{font-family:var(--mono);color:var(--fg2)}
     }
   }
   function acUpdate(){
-    acCtx=detectCtx();
-    if(!acCtx){acHide();return;}
+    var ctx=detectCtx();
+    acCtx=ctx;
+    if(!ctx){acHide();return;}
     var pool;
-    if(acCtx.kind==='keyword')pool=keywordPool();
-    else if(acCtx.kind==='location')pool=LOCATIONS.map(function(s){return {text:s,kd:'地点'};});
-    else if(acCtx.kind==='value')pool=VALUE_SUGGEST[acCtx.field].map(function(s){return {text:s,kd:'取值'};});
+    if(ctx.kind==='keyword'){
+      // 已经在同一行里写过的关键词不再出现在候选里
+      pool=keywordPool().filter(function(it){return (ctx.used||[]).indexOf(it.text)<0;});
+    }
+    else if(ctx.kind==='location')pool=LOCATIONS.map(function(s){return {text:s,kd:'地点'};});
+    else if(ctx.kind==='value')pool=VALUE_SUGGEST[ctx.field].map(function(s){return {text:s,kd:'取值'};});
     else pool=Object.keys(FIELD_SNIPPETS).map(function(s){return {text:s,kd:'字段'};});
-    acItems=filterPool(pool,acCtx.partial);
+    acItems=filterPool(pool,ctx.partial);
     if(!acItems.length){acHide();return;}
     acIndex=0;renderAc();
     var xy=caretXY(),top=xy.y-ta.scrollTop+24;

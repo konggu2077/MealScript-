@@ -19,8 +19,13 @@ export interface MealIR {
   /** v0.1 supports pickup only (E102 for anything else). */
   mode: 'pickup';
   budget: BudgetIR;
-  /** Empty string means "no hard product requirement". */
-  requireKeyword: string;
+  /**
+   * Every keyword must be satisfied by at least one item in the meal (AND).
+   * Matched against product name / category name / tags. Empty array means
+   * "no hard product requirement".
+   */
+  requireKeywords: string[];
+  /** No item matching any of these may end up in the meal. */
   excludeKeywords: string[];
   minItems: number;
   maxItems: number;

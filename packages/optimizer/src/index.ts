@@ -68,7 +68,7 @@ function matches(item: OptimizerItem, keyword: string): boolean {
  */
 export function buildCandidates(
   menu: OptimizerItem[],
-  ir: Pick<MealIR, 'requireKeyword' | 'excludeKeywords' | 'minItems' | 'maxItems' | 'budget'>,
+  ir: Pick<MealIR, 'requireKeywords' | 'excludeKeywords' | 'minItems' | 'maxItems' | 'budget'>,
   options: OptimizerOptions = {},
 ): OptimizerResult {
   const topK = options.topK ?? DEFAULT_TOP_K;
@@ -82,8 +82,16 @@ export function buildCandidates(
   // combinations are enumerated over the whole allowed menu and then filtered to
   // those containing at least one hit. (Restricting the pool to hits only made
   // every multi-item request impossible unless it repeated the same food type.)
-  const hits = ir.requireKeyword ? allowed.filter((item) => matches(item, ir.requireKeyword)) : allowed;
+  //
+  // Multiple keywords are AND-ed: each one needs its own hit inside the meal, so
+  // `["汉堡", "可乐"]` means "a burger *and* a coke", not "either one".
+  const hits = ir.requireKeywords.map((keyword) => allowed.filter((item) => matches(item, keyword)));
+  const missing = ir.requireKeywords.filter((_, index) => hits[index]?.length === 0);
   const categories = [...new Set(allowed.map((item) => item.category).filter((c): c is string => Boolean(c)))];
+
+  const keywordSummary = ir.requireKeywords
+    .map((keyword, index) => `「${keyword}」命中 ${hits[index]?.length ?? 0} 件`)
+    .join('、');
 
   const stats = (enumerated: number, exhaustive: boolean, extra = ''): OptimizerStats => ({
     menuSize,
@@ -91,7 +99,7 @@ export function buildCandidates(
     enumerated,
     searchScope:
       `在 ${ir.minItems}–${ir.maxItems} 件窗口内搜索，允许集 ${allowed.length} 件` +
-      (ir.requireKeyword ? `（关键词「${ir.requireKeyword}」命中 ${hits.length} 件）` : '') +
+      (ir.requireKeywords.length > 0 ? `（${keywordSummary}）` : '') +
       extra,
     exhaustive,
   });
@@ -106,15 +114,29 @@ export function buildCandidates(
     };
   }
 
-  if (ir.requireKeyword && hits.length === 0) {
+  if (missing.length > 0) {
     return {
       ok: false,
       candidates: [],
       errorCode: 'E211',
       message:
-        `当前门店可售商品中没有匹配「${ir.requireKeyword}」的商品` +
+        `当前门店可售商品中没有匹配${missing.map((keyword) => `「${keyword}」`).join('')}的商品` +
         (categories.length ? `；可用分类：${categories.join('、')}` : ''),
-      stats: stats(0, true, `，关键词「${ir.requireKeyword}」命中 0 件`),
+      stats: stats(0, true),
+    };
+  }
+
+  // A meal can only be assembled if the window is wide enough for one item per
+  // required keyword. The compiler already rejects the obvious case, but the
+  // optimizer is also called directly (tests, other front ends), so it stays
+  // honest on its own.
+  if (ir.requireKeywords.length > Math.min(Math.max(1, ir.maxItems), 3)) {
+    return {
+      ok: false,
+      candidates: [],
+      errorCode: 'E220',
+      message: `require_keyword 里每件商品都要占一个名额（共 ${ir.requireKeywords.length} 个），但 max_items 只有 ${ir.maxItems}`,
+      stats: stats(0, true),
     };
   }
 
@@ -161,21 +183,28 @@ export function buildCandidates(
     }
   }
 
-  // A meal must contain at least one item matching require_keyword; the other
-  // items may be anything the store sells (that survived exclude_keywords).
-  const qualified = candidates.filter((candidate) =>
-    ir.requireKeyword ? candidate.items.some((item) => matches(item, ir.requireKeyword)) : true,
+  // Every required keyword needs at least one matching item in the combo; the
+  // remaining slots may hold anything the store sells (after exclude_keywords).
+  const qualified = candidates.filter(
+    (candidate) =>
+      ir.requireKeywords.length === 0 ||
+      ir.requireKeywords.every((keyword) => candidate.items.some((item) => matches(item, keyword))),
   );
 
   qualified.sort((x, y) => x.menuTotalCny - y.menuTotalCny);
-  const top = ir.requireKeyword ? pickDiverse(qualified, topK, ir.requireKeyword) : qualified.slice(0, topK);
+  const top =
+    ir.requireKeywords.length > 0 ? pickDiverse(qualified, topK, ir.requireKeywords) : qualified.slice(0, topK);
 
   if (top.length === 0) {
+    const keywordHint =
+      ir.requireKeywords.length > 1
+        ? `${ir.requireKeywords.length} 个关键词各要占一件商品，最低也要买 ${ir.requireKeywords.length} 件；`
+        : '';
     return {
       ok: false,
       candidates: [],
       errorCode: 'E220',
-      message: `在已枚举的 ${enumerated} 个组合中，没有菜单价不超过 ${budget} 元的组合（可提高预算，或把 min_items 调到 ${Math.max(1, ir.minItems - 1)} 试试）`,
+      message: `在已枚举的 ${enumerated} 个组合中，没有菜单价不超过 ${budget} 元的组合（${keywordHint}可提高预算，或把 min_items 调到 ${Math.max(1, ir.minItems - 1)} 试试）`,
       stats: stats(enumerated, !truncated),
     };
   }
@@ -187,7 +216,7 @@ export function buildCandidates(
       enumerated,
       !truncated,
       (truncated ? '，枚举已被上限截断' : '') +
-        (ir.requireKeyword ? `，已按主料与件数去重（${top.length} 个方案）` : ''),
+        (ir.requireKeywords.length > 0 ? `，已按主料与件数去重（${top.length} 个方案）` : ''),
     ),
   };
 }
@@ -202,16 +231,19 @@ export function buildCandidates(
  * the same set of keyword hits, so the report shows e.g. three different burgers
  * instead of one burger three times.
  */
-function pickDiverse(candidates: Candidate[], topK: number, keyword: string): Candidate[] {
+function pickDiverse(candidates: Candidate[], topK: number, keywords: string[]): Candidate[] {
   const picked: Candidate[] = [];
   const seen = new Set<string>();
 
   for (const candidate of candidates) {
     if (picked.length >= topK) break;
-    const hits = candidate.items
-      .filter((item) => matches(item, keyword))
-      .map((item) => item.code)
-      .sort();
+    const hits = [
+      ...new Set(
+        candidate.items
+          .filter((item) => keywords.some((keyword) => matches(item, keyword)))
+          .map((item) => item.code),
+      ),
+    ].sort();
     const signature = `${candidate.items.length}:${hits.join(',')}`;
     if (seen.has(signature)) continue;
     seen.add(signature);

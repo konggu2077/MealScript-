@@ -186,6 +186,76 @@ describe('MealScript semantic checks', () => {
     expect(diagnostic.message).toContain('require_keyword');
   });
 
+  it('accepts a comma-separated keyword list inside one quoted string', () => {
+    const result = compile(VALID.replace('require_keyword: "汉堡";', 'require_keyword: "巨无霸牛鱼肉堡, 麦旋风";'));
+    expect(result.ok).toBe(true);
+    expect(result.ir?.requireKeywords).toEqual(['巨无霸牛鱼肉堡', '麦旋风']);
+  });
+
+  it('accepts a keyword array, and both shapes normalise identically', () => {
+    const array = compile(VALID.replace('require_keyword: "汉堡";', 'require_keyword: ["巨无霸牛鱼肉堡", "麦旋风"];'));
+    const scalar = compile(VALID.replace('require_keyword: "汉堡";', 'require_keyword: "巨无霸牛鱼肉堡, 麦旋风";'));
+    expect(array.ok).toBe(true);
+    expect(array.ir?.requireKeywords).toEqual(scalar.ir?.requireKeywords);
+  });
+
+  it('splits on full-width comma and the Chinese enumeration comma too', () => {
+    const result = compile(
+      code(
+        'meal lunch {',
+        '  location: "北京市海淀区五道口";',
+        '  budget: <= 45 CNY;',
+        '  require_keyword: "汉堡、可乐，薯条";',
+        '  max_items: 3;',
+        '}',
+      ),
+    );
+    expect(result.ir?.requireKeywords).toEqual(['汉堡', '可乐', '薯条']);
+  });
+
+  it('trims, drops blanks and de-duplicates keyword lists', () => {
+    const result = compile(VALID.replace('require_keyword: "汉堡";', 'require_keyword: ["  汉堡 ", "汉堡", " ", "可乐"];'));
+    expect(result.ir?.requireKeywords).toEqual(['汉堡', '可乐']);
+  });
+
+  it('E103 — more required keywords than max_items can never be satisfied', () => {
+    const result = compile(
+      code(
+        'meal lunch {',
+        '  location: "北京市海淀区五道口";',
+        '  budget: <= 45 CNY;',
+        '  require_keyword: "巨无霸牛鱼肉堡, 麦旋风";',
+        '  min_items: 1;',
+        '  max_items: 1;',
+        '}',
+      ),
+    );
+    const diagnostic = firstAt(result.diagnostics, 'E103');
+    expect(diagnostic.message).toContain('max_items 只有 1');
+    expect(diagnostic.hint).toContain('max_items 调到 ≥ 2');
+  });
+
+  it('a keyword count that fits the window passes', () => {
+    const result = compile(
+      code(
+        'meal lunch {',
+        '  location: "北京市海淀区五道口";',
+        '  budget: <= 45 CNY;',
+        '  require_keyword: "巨无霸牛鱼肉堡, 麦旋风";',
+        '  min_items: 2;',
+        '  max_items: 2;',
+        '}',
+      ),
+    );
+    expect(result.ok).toBe(true);
+    expect(result.ir?.requireKeywords).toHaveLength(2);
+  });
+
+  it('also splits a comma list written inside exclude_keywords', () => {
+    const result = compile(VALID.replace('exclude_keywords: ["咖啡"];', 'exclude_keywords: ["咖啡, 脆脆薯条"];'));
+    expect(result.ir?.excludeKeywords).toEqual(['咖啡', '脆脆薯条']);
+  });
+
   it('applies defaults when optional fields are omitted', () => {
     const result = compile(
       code('meal lunch {', '  location: "北京市海淀区五道口";', '  budget: <= 35 CNY;', '}'),
@@ -195,7 +265,7 @@ describe('MealScript semantic checks', () => {
     expect(result.ir?.maxItems).toBe(2);
     expect(result.ir?.mode).toBe('pickup');
     expect(result.ir?.execution).toBe('dry_run');
-    expect(result.ir?.requireKeyword).toBe('');
+    expect(result.ir?.requireKeywords).toEqual([]);
     expect(result.ir?.excludeKeywords).toEqual([]);
   });
 

@@ -119,6 +119,7 @@ npm run build:single   # → dist/mealscript.html（约 265 KB）
 编辑器带**自动补全**：输入字段名、枚举取值（`pickup` / `dry_run` …）时有候选弹窗；
 在 `require_keyword` / `exclude_keywords` 的引号里输入时，会从菜单数据里实时联想**分类、商品、标签**
 （如 `小食`、`麦旋风`、`爆款`），↑↓ 选择、Tab/Enter 确认、Esc 关闭。
+写多关键词时只按**最后一个分隔符之后的片段**联想，并自动把这一行里已经写过的关键词从候选里去掉。
 
 它已提交进仓库，也可以直接从 GitHub 下载后双击打开。构建时 `@mealscript/mcp-adapter` 被强制解析为
 `browser.ts`，因此 `node:fs`、MCP SDK 与任何 Token 都不可能进入产物（有测试守着这条边界）。
@@ -199,16 +200,31 @@ mealscript/
 | `location` | 字符串，门店发现用的位置文本 | 缺失或空 → E001 |
 | `mode` | v0.1 仅 `pickup` | `delivery` → E102 |
 | `budget` | `<= 金额 CNY`，金额为正 | `-10` / `USD` → E101 |
-| `require_keyword` | 非空 UTF-8 文本，按**商品名 / 分类名 / 标签**匹配（如 `汉堡`、`小食`、`甜品`、`咖啡` 都有效） | 空串 → E001；无匹配商品 → E211 |
-| `exclude_keywords` | 字符串数组 | 非法数组 → E001 |
+| `require_keyword` | 单个关键词，或用 `,` `，` `、` 分隔的多关键词，或字符串数组。按**商品名 / 分类名 / 标签**匹配（如 `汉堡`、`小食`、`甜品`、`咖啡` 都有效） | 空串 → E001；任一关键词无匹配商品 → E211；关键词个数 > `max_items` → E103 |
+| `exclude_keywords` | 字符串数组（元素内也可用逗号写多个） | 非法数组 → E001 |
 | `min_items` / `max_items` | 整数 1–3 | 越界或 `min > max` → E103 |
 | `optimize` | v0.1 仅 `min(total_price)` | `max(protein)` → E104 |
 | `execution` | v0.1 固定 `dry_run` | `place_order` → E105 |
 
 **省略时的默认值**：`mode=pickup`、`min_items=1`、`max_items=2`、`optimize=min(total_price)`、`execution=dry_run`。
 
-**组合语义**：`require_keyword` 规定的是「这一餐里**至少要有**一件命中商品」，其余商品可以来自任意可售品类 ——
-所以 `require_keyword: "汉堡"` + `min_items: 2` 组出来的是「汉堡 + 小食/甜品/饮品」，而不是「两个汉堡」。
+### 多关键词：AND 语义
+
+`require_keyword` 可以写多个关键词，**每一个都必须命中一件商品**（AND）。三种写法完全等价：
+
+```mealscript
+require_keyword: "巨无霸牛鱼肉堡, 麦旋风";      // 一个字符串里逗号分隔
+require_keyword: "巨无霸牛鱼肉堡、麦旋风";      // 顿号 / 全角逗号同样识别
+require_keyword: ["巨无霸牛鱼肉堡", "麦旋风"];  // 数组
+```
+
+去空白、去重后得到 `["巨无霸牛鱼肉堡", "麦旋风"]`，编译器要求套餐里同时出现这两类商品各一件。
+因为每个关键词都要占一个名额，关键词个数超过 `max_items` 时直接给 **E103** 并告诉你该把 `max_items` 调到多少，
+而不是等到搜索阶段报一个含糊的「无可行组合」。
+
+注意语义边界：`require_keyword` 指的是**至少一件**命中商品，其余名额可以来自任意可售品类 ——
+所以 `require_keyword: "汉堡"` + `min_items: 2` 组出来的是「汉堡 + 小食/甜品/饮品」，而不是「两个汉堡」；
+要两件都指定，就写两个关键词。
 
 **方案去重**：`min(total_price)` 天然会挑最便宜的组合，容易给出三个只差一件配菜的近似方案。
 因此返回前会按「件数 + 命中主料」去重，让报告展示**不同的主料/不同的件数**（例如三个不同的汉堡），
@@ -221,7 +237,7 @@ mealscript/
 | E001 | SyntaxError | 语法无效 / 缺分号 / 非法 Token / 缺必需字段 |
 | E101 | SemanticConstraintError | 预算非法：非正数、非 `CNY`、缺 `<=` |
 | E102 | SemanticConstraintError | 取餐模式非法：v0.1 仅 `pickup` |
-| E103 | SemanticConstraintError | 数量范围非法：超出 1–3，或 `min_items > max_items` |
+| E103 | SemanticConstraintError | 数量范围非法：超出 1–3、`min_items > max_items`，或 `require_keyword` 的关键词个数超过 `max_items` |
 | E104 | SemanticConstraintError | 优化目标非法：v0.1 仅 `min(total_price)` |
 | E105 | SemanticConstraintError | 执行方式非法：v0.1 仅 `dry_run` |
 | E211 | RequiredProductNotFound | 当前菜单中无匹配商品（报错里会列出该店**可用分类**，照着改关键词即可） |

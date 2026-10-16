@@ -28,6 +28,10 @@ coverage/
 *.log
 logs/
 
+# ---- local scratch (probes / repros, never shipped) ----
+.workbuddy-tmp/
+.workbuddy-cache/
+
 # ---- editors / os ----
 .DS_Store
 .vscode/

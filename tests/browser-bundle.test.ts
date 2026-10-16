@@ -277,6 +277,37 @@ describe('single-file UI glue (DOM stub)', () => {
     expect(filtered.every((t: string) => t.includes(partial))).toBe(true);
   });
 
+  it('completes the second keyword of a comma list and drops the first one', async () => {
+    const { ids } = await loadPage();
+    const src = ids['src'];
+    const acEl = () => src.parentNode.children.find((c: any) => c.className === 'ac');
+
+    const products = sandboxKeywords().products.filter((p) => p.length >= 3);
+    const first = products[0]!;
+    const second = products.find((p) => p !== first && !p.includes(first[0]!)) ?? products[1]!;
+
+    // After "A, " the pool must be filtered by what comes after the comma, and
+    // must no longer offer A itself.
+    src.value = `meal x {\n  require_keyword: "${first}, ${second.slice(0, 2)}`;
+    src.selectionStart = src.selectionEnd = src.value.length;
+    fire(src, 'input');
+
+    expect(acEl().style.display).toBe('block');
+    const items = acEl().children.map((c: any) => c.children[0].textContent);
+    expect(items.length).toBeGreaterThan(0);
+    expect(items.every((t: string) => t.includes(second.slice(0, 2)))).toBe(true);
+    expect(items).not.toContain(first);
+
+    // Accepting replaces only the segment after the comma, keeping the first keyword.
+    const accepted = items[0] as string;
+    const ctx = src.value;
+    void ctx;
+    fire(src, 'keydown', { key: 'Enter', preventDefault() {} });
+    // The fixture input has no closing quote, so the completed value must not
+    // invent one either — completion only replaces the segment being typed.
+    expect(src.value).toBe(`meal x {\n  require_keyword: "${first}, ${accepted}`);
+  });
+
   it('suggests real locations while typing inside location quotes', async () => {
     const { ids } = await loadPage();
     const src = ids['src'];

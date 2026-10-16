@@ -12,7 +12,7 @@ const MENU: OptimizerItem[] = [
 ];
 
 const base = {
-  requireKeyword: '',
+  requireKeywords: [],
   excludeKeywords: [] as string[],
   minItems: 1,
   maxItems: 2,
@@ -28,7 +28,7 @@ describe('bounded combination search', () => {
   });
 
   it('keeps only combinations containing the required keyword', () => {
-    const result = buildCandidates(MENU, { ...base, requireKeyword: '汉堡', maxItems: 2 });
+    const result = buildCandidates(MENU, { ...base, requireKeywords: ['汉堡'], maxItems: 2 });
     expect(result.candidates.length).toBeGreaterThan(0);
     for (const candidate of result.candidates) {
       expect(candidate.items.some((item) => item.name.includes('汉堡'))).toBe(true);
@@ -37,7 +37,7 @@ describe('bounded combination search', () => {
 
   it('matches the required keyword against tags as well as names', () => {
     const tagged: OptimizerItem[] = [{ code: 'x', name: '神秘单品', priceCny: 9, tags: ['汉堡'] }];
-    const result = buildCandidates(tagged, { ...base, requireKeyword: '汉堡' });
+    const result = buildCandidates(tagged, { ...base, requireKeywords: ['汉堡'] });
     expect(result.ok).toBe(true);
   });
 
@@ -47,10 +47,10 @@ describe('bounded combination search', () => {
       { code: 'a', name: '薯条', priceCny: 14.5, category: '小食' },
       { code: 'b', name: '圆筒冰淇淋', priceCny: 5, category: '甜品冰淇淋' },
     ];
-    const snack = buildCandidates(categorized, { ...base, requireKeyword: '小食' });
+    const snack = buildCandidates(categorized, { ...base, requireKeywords: ['小食'] });
     expect(snack.ok).toBe(true);
     expect(snack.candidates[0]?.items[0]?.code).toBe('a');
-    const dessert = buildCandidates(categorized, { ...base, requireKeyword: '甜品' });
+    const dessert = buildCandidates(categorized, { ...base, requireKeywords: ['甜品'] });
     expect(dessert.ok).toBe(true);
     expect(dessert.candidates[0]?.items[0]?.code).toBe('b');
   });
@@ -74,7 +74,7 @@ describe('bounded combination search', () => {
       { code: 'fries', name: '薯条', priceCny: 10, category: '小食' },
       { code: 'coke', name: '可乐', priceCny: 8, category: '饮品' },
     ];
-    const result = buildCandidates(menu, { ...base, requireKeyword: '汉堡', minItems: 2, maxItems: 2 });
+    const result = buildCandidates(menu, { ...base, requireKeywords: ['汉堡'], minItems: 2, maxItems: 2 });
     expect(result.ok).toBe(true); // before the fix this was E220 with 0 combinations
     const combos = result.candidates.map((c) => c.items.map((i) => i.code).sort().join('+'));
     expect(combos.length).toBeGreaterThan(0);
@@ -95,7 +95,7 @@ describe('bounded combination search', () => {
       { code: 'd2', name: '圆筒B', priceCny: 5, category: '甜品冰淇淋' },
       { code: 'd3', name: '圆筒C', priceCny: 5, category: '甜品冰淇淋' },
     ];
-    const result = buildCandidates(menu, { ...base, requireKeyword: '汉堡', minItems: 1, maxItems: 2, budget: { amountCny: 40 } });
+    const result = buildCandidates(menu, { ...base, requireKeywords: ['汉堡'], minItems: 1, maxItems: 2, budget: { amountCny: 40 } });
     const signatures = result.candidates.map((c) => `${c.items.length}:${c.items.map((i) => i.code).sort().join('+')}`);
     expect(signatures).toEqual(['1:burger', '2:burger+d1']);
   });
@@ -105,16 +105,72 @@ describe('bounded combination search', () => {
       { code: 'a', name: '薯条', priceCny: 14.5, category: '小食' },
       { code: 'b', name: '雪碧', priceCny: 9.5, category: '饮品' },
     ];
-    const result = buildCandidates(menu, { ...base, requireKeyword: '饮料' });
+    const result = buildCandidates(menu, { ...base, requireKeywords: ['饮料'] });
     expect(result.errorCode).toBe('E211');
     expect(result.message).toContain('小食');
     expect(result.message).toContain('饮品');
   });
 
   it('E211 when nothing in the menu matches the required keyword', () => {
-    const result = buildCandidates(MENU, { ...base, requireKeyword: '披萨' });
+    const result = buildCandidates(MENU, { ...base, requireKeywords: ['披萨'] });
     expect(result.ok).toBe(false);
     expect(result.errorCode).toBe('E211');
+  });
+
+  it('AND-requires every keyword: each one needs its own item in the meal', () => {
+    // 薯条 + 可乐 are two separate products, so a valid meal needs both.
+    const result = buildCandidates(MENU, {
+      ...base,
+      requireKeywords: ['薯条', '可乐'],
+      minItems: 2,
+      maxItems: 3,
+      budget: { amountCny: 60 },
+    });
+    expect(result.ok).toBe(true);
+    for (const candidate of result.candidates) {
+      expect(candidate.items.some((item) => item.name.includes('薯条'))).toBe(true);
+      expect(candidate.items.some((item) => item.name.includes('可乐'))).toBe(true);
+    }
+  });
+
+  it('a one-word keyword list behaves exactly like the old single keyword', () => {
+    const single = buildCandidates(MENU, { ...base, requireKeywords: ['汉堡'] });
+    expect(single.ok).toBe(true);
+    expect(single.candidates.length).toBeGreaterThan(0);
+    for (const candidate of single.candidates) {
+      expect(candidate.items.some((item) => item.name.includes('汉堡'))).toBe(true);
+    }
+  });
+
+  it('names only the keywords that found no product', () => {
+    const result = buildCandidates(MENU, { ...base, requireKeywords: ['汉堡', '披萨'] });
+    expect(result.errorCode).toBe('E211');
+    expect(result.message).toContain('披萨');
+    expect(result.message).not.toContain('「汉堡」');
+  });
+
+  it('reports each keyword hit count in the search scope', () => {
+    const result = buildCandidates(MENU, { ...base, requireKeywords: ['薯条', '可乐'], budget: { amountCny: 60 } });
+    expect(result.stats.searchScope).toContain('「薯条」命中 1 件');
+    expect(result.stats.searchScope).toContain('「可乐」命中 1 件');
+  });
+
+  it('E220 when the window is too narrow for one item per keyword', () => {
+    const result = buildCandidates(MENU, {
+      ...base,
+      requireKeywords: ['薯条', '可乐'],
+      minItems: 1,
+      maxItems: 1,
+    });
+    expect(result.ok).toBe(false);
+    expect(result.errorCode).toBe('E220');
+    expect(result.message).toContain('max_items 只有 1');
+  });
+
+  it('an empty keyword list means "no product requirement"', () => {
+    const result = buildCandidates(MENU, { ...base, requireKeywords: [] });
+    expect(result.ok).toBe(true);
+    expect(result.candidates.length).toBeGreaterThan(0);
   });
 
   it('respects the declared item-count window', () => {
@@ -164,7 +220,7 @@ describe('bounded combination search', () => {
   });
 
   it('E220 when no combination fits the budget', () => {
-    const result = buildCandidates(MENU, { ...base, requireKeyword: '汉堡', budget: { amountCny: 5 } });
+    const result = buildCandidates(MENU, { ...base, requireKeywords: ['汉堡'], budget: { amountCny: 5 } });
     expect(result.ok).toBe(false);
     expect(result.errorCode).toBe('E220');
   });

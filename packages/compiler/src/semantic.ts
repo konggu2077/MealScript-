@@ -144,21 +144,34 @@ export function analyze(program: Program): SemanticResult {
     }
   }
 
-  // --- require_keyword ----------------------------------------------------
+  // --- require_keyword (E001) ---------------------------------------------
   const requireField = seen.get('require_keyword');
-  let requireKeyword = '';
+  let requireKeywords: string[] = [];
   if (requireField) {
     const value = requireField.value;
-    if (value.kind !== 'string') {
+    if (value.kind !== 'string' && value.kind !== 'array') {
       push(
-        makeDiagnostic('E001', 'require_keyword 必须是字符串', pos(requireField), '例如 require_keyword: "汉堡";'),
-      );
-    } else if (value.value.trim().length === 0) {
-      push(
-        makeDiagnostic('E001', 'require_keyword 不能为空字符串', pos(requireField), '填写一个关键词，或删除该字段'),
+        makeDiagnostic(
+          'E001',
+          'require_keyword 必须是字符串或字符串数组',
+          pos(requireField),
+          '例如 require_keyword: "汉堡"; 或 require_keyword: ["汉堡", "可乐"];',
+        ),
       );
     } else {
-      requireKeyword = value.value;
+      // A quoted string may carry a whole list: `"巨无霸牛鱼肉堡, 麦旋风"`.
+      // Both shapes normalise to one list, which keeps the IR unambiguous.
+      requireKeywords = splitKeywords(value.kind === 'string' ? [value.value] : value.items);
+      if (requireKeywords.length === 0) {
+        push(
+          makeDiagnostic(
+            'E001',
+            'require_keyword 不能为空',
+            pos(requireField),
+            '填写一个关键词，或删除该字段',
+          ),
+        );
+      }
     }
   }
 
@@ -181,7 +194,9 @@ export function analyze(program: Program): SemanticResult {
         makeDiagnostic('E001', 'exclude_keywords 中不能包含空字符串', pos(excludeField), '移除数组中的空串元素'),
       );
     } else {
-      excludeKeywords = value.items;
+      // Same comma-list normalisation as require_keyword, so ["咖啡, 汉堡"]
+      // cannot silently become one keyword that matches nothing.
+      excludeKeywords = splitKeywords(value.items);
     }
   }
 
@@ -232,6 +247,23 @@ export function analyze(program: Program): SemanticResult {
           `min_items(${minItems}) 不能大于 max_items(${maxItems})`,
           pos(field),
           `把 max_items 调整为 ≥ ${minItems}，或把 min_items 调整为 ≤ ${maxItems}`,
+        ),
+      );
+    }
+  }
+
+  // Every required keyword needs its own item in the meal, so a window that tops
+  // out below the keyword count is unsatisfiable — say so here, with the fix,
+  // instead of letting the search fail later with a vague "no combination".
+  if (requireKeywords.length > maxItems) {
+    const field = maxField ?? requireField;
+    if (field) {
+      push(
+        makeDiagnostic(
+          'E103',
+          `require_keyword 里有 ${requireKeywords.length} 个关键词（每个都要命中一件商品），但 max_items 只有 ${maxItems}`,
+          pos(field),
+          `把 max_items 调到 ≥ ${requireKeywords.length}，或减少 require_keyword 里的关键词`,
         ),
       );
     }
@@ -291,7 +323,7 @@ export function analyze(program: Program): SemanticResult {
     location,
     mode: 'pickup',
     budget,
-    requireKeyword,
+    requireKeywords,
     excludeKeywords,
     minItems,
     maxItems,
@@ -308,4 +340,26 @@ function pos(field: Field) {
     endLine: field.valueLoc.endLine,
     endColumn: field.valueLoc.endColumn,
   };
+}
+
+/** Half-width comma, full-width comma, and the Chinese enumeration comma. */
+const KEYWORD_SEPARATOR = /[,，、]/;
+
+/**
+ * Flatten keyword input into one clean list: splits on `,` `，` `、`, trims each
+ * part, drops blanks and de-duplicates.
+ *
+ * `["巨无霸牛鱼肉堡", "麦旋风"]` and `"巨无霸牛鱼肉堡, 麦旋风"` therefore mean the
+ * same thing, which is why a user who writes a list inside one quoted string is
+ * no longer silently asking for a product literally named "A, B".
+ */
+export function splitKeywords(values: string[]): string[] {
+  const keywords: string[] = [];
+  for (const value of values) {
+    for (const part of value.split(KEYWORD_SEPARATOR)) {
+      const keyword = part.trim();
+      if (keyword.length > 0 && !keywords.includes(keyword)) keywords.push(keyword);
+    }
+  }
+  return keywords;
 }

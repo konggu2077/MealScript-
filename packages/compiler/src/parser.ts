@@ -144,12 +144,55 @@ class MealParser extends EmbeddedActionsParser {
     return this.field('budget', value, kw, op, currency, semi);
   });
 
+  /**
+   * `require_keyword` accepts either shape, both meaning "every listed keyword
+   * must be satisfied by at least one item in the meal":
+   *
+   *   require_keyword: "汉堡";                      // one keyword
+   *   require_keyword: "巨无霸牛鱼肉堡, 麦旋风";      // comma-separated list
+   *   require_keyword: ["巨无霸牛鱼肉堡", "麦旋风"];  // array
+   */
   private requireKeywordStmt = this.RULE('requireKeywordStmt', () => {
     const kw = this.CONSUME(KwRequireKeyword);
     this.CONSUME(Colon);
-    const value = this.CONSUME(StringLiteral);
+    // Values are collected into outer variables rather than returned from the
+    // OR alternatives: chevrotain re-walks every rule to record the grammar, and
+    // during that pass an alternative's return value is not available.
+    let value: FieldValue = { kind: 'array', items: [] };
+    // Defaulted to the keyword token so the variable is always assigned; the OR
+    // below overwrites both on every real parse.
+    let first: IToken = kw;
+    let last: IToken = kw;
+    this.OR([
+      {
+        // ["A", "B"]
+        ALT: () => {
+          const open = this.CONSUME(LBracket);
+          const items: string[] = [];
+          this.MANY_SEP({
+            SEP: Comma,
+            DEF: () => {
+              items.push(unquote(this.CONSUME(StringLiteral).image));
+            },
+          });
+          const close = this.CONSUME(RBracket);
+          value = { kind: 'array', items };
+          first = open;
+          last = close;
+        },
+      },
+      {
+        // "A, B" / "汉堡"
+        ALT: () => {
+          const literal = this.CONSUME2(StringLiteral);
+          value = { kind: 'string', value: unquote(literal.image) };
+          first = literal;
+          last = literal;
+        },
+      },
+    ]);
     const semi = this.CONSUME(Semi);
-    return this.field('require_keyword', { kind: 'string', value: unquote(value.image) }, kw, value, value, semi);
+    return this.field('require_keyword', value, kw, first, last, semi);
   });
 
   private excludeKeywordsStmt = this.RULE('excludeKeywordsStmt', () => {

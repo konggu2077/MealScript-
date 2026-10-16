@@ -30,6 +30,21 @@ export const EXAMPLES = [
 }`,
   },
   {
+    id: 'multi-keyword',
+    label: '多关键词 · 巨无霸牛鱼肉堡 + 麦旋风（两个都要）',
+    source: `meal multi {
+  location: "北京市海淀区五道口";
+  mode: pickup;
+  budget: <= 45 CNY;
+  require_keyword: "巨无霸牛鱼肉堡, 麦旋风";
+  exclude_keywords: ["脆脆薯条"];
+  min_items: 2;
+  max_items: 3;
+  optimize: min(total_price);
+  execution: dry_run;
+}`,
+  },
+  {
     id: 'syntax-error',
     label: '故意写错 · 漏掉分号（E001）',
     source: `meal lunch {

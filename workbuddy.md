@@ -68,7 +68,7 @@ Test Files  5 passed (5)      Tests  75 passed (75)
 $ npm run compile:cli examples/budget.meal
 BUILD_PASSED (front half — no MCP call was made)
 { "name": "lunch", "location": { "raw": "北京市海淀区五道口", "city": "北京市", "keyword": "海淀区五道口" },
-  "mode": "pickup", "budget": { "amountCny": 35 }, "requireKeyword": "汉堡",
+  "mode": "pickup", "budget": { "amountCny": 35 }, "requireKeywords": ["汉堡"],
   "excludeKeywords": ["咖啡"], "minItems": 1, "maxItems": 2,
   "optimize": { "fn": "min", "target": "total_price" }, "execution": "dry_run" }
 
