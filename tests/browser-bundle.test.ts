@@ -38,7 +38,9 @@ async function bundle(): Promise<string> {
     alias: { '@mealscript/mcp-adapter': join(root, 'packages/mcp-adapter/src/browser.ts') },
     logLevel: 'silent',
   });
-  return result.outputFiles[0].text;
+  const file = result.outputFiles?.[0];
+  if (!file) throw new Error('esbuild produced no output for the single-file UI');
+  return file.text;
 }
 
 async function loadApi() {

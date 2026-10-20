@@ -3,7 +3,7 @@
 <p align="left">
   <img alt="node &gt;= 20" src="docs/badges/node.svg">
   <img alt="workspace npm" src="docs/badges/workspace.svg">
-  <img alt="tests 108 passed" src="docs/badges/tests.svg">
+  <img alt="tests 115 passed" src="docs/badges/tests.svg">
   <img alt="license MIT" src="docs/badges/license.svg">
 </p>
 
@@ -97,7 +97,7 @@ npm install
 # 1) 不依赖任何凭据，先验证编译器是真的
 npm run compile:cli examples/budget.meal
 
-# 2) 跑全部测试（108 个）
+# 2) 跑全部测试（115 个）
 npm test
 
 # 3) 启动网页 Playground
@@ -184,7 +184,7 @@ mealscript/
 │   └── trace/                统一执行轨迹与脱敏
 ├── examples/                 三份 .meal 示例（1 份正确 + 2 份故意写错）
 ├── fixtures/                 脱敏 Replay 案例（成功 / 失败）
-├── tests/                    108 个单元与集成测试
+├── tests/                    115 个单元与集成测试
 ├── CONTEST_DECLARATION.md    官方参赛声明原文（未改动一个字）
 ├── MCP_INTEGRATION.md        实际使用的 MCP Server / Tool / 调用流程
 ├── mcp-config.example.json   配置示例（只有占位符）
@@ -230,6 +230,14 @@ require_keyword: ["巨无霸牛鱼肉堡", "麦旋风"];  // 数组
 因此返回前会按「件数 + 命中主料」去重，让报告展示**不同的主料/不同的件数**（例如三个不同的汉堡），
 搜索范围里会注明去重后的方案数。
 
+**两个排序键必须一致**：候选在优化阶段按**菜单价**排序（便宜的先进入搜索），但最终判据是**官方结算价**。
+折扣会让两者顺序不同，所以校验阶段会把整批候选并行算完、再按官方价重排取最便宜的几个 ——
+否则就会「报了菜单上最便宜的，却不是结算最便宜的」。
+
+**枚举上限只限制内存，不改变答案**：组合按下标字典序枚举，总价并不随之单调
+（价格 `1,2,3,100` 时，`(0,3)=101` 会先于 `(1,2)=5` 被枚举到），所以「攒满就丢」会漏掉真正更便宜的方案。
+上限用定容最大堆实现，保留的始终是**最便宜的 N 个**组合。
+
 ### 错误码
 
 | 代码 | 名称 | 触发条件 |
@@ -244,6 +252,7 @@ require_keyword: ["巨无霸牛鱼肉堡", "麦旋风"];  // 数组
 | E220 | NoVerifiedCandidate | 已枚举的组合里没有不超预算的（报错会提示调高预算或降低 `min_items`） |
 | E301 | UnavailableProduct | 商品下架或不可售 |
 | E401 | MCPAuthenticationFailed | Token 失效或缺失 |
+| E408 | MCPTimeout | 请求超过 `timeoutMs` 未返回（与限流是两回事，不再混报成 E429） |
 | E429 | MCPRateLimited | 触发官方限流 |
 | E500 | PriceVerificationFailed | 官方价格计算失败或不可验证 |
 
@@ -291,12 +300,13 @@ npm test
 
 ```
 ✓ tests/compiler.test.ts       (39 tests)
-✓ tests/optimizer.test.ts      (25 tests)
+✓ tests/optimizer.test.ts      (28 tests)
 ✓ tests/trace.test.ts          (14 tests)
-✓ tests/verifier.test.ts       ( 7 tests)
+✓ tests/verifier.test.ts       (10 tests)
 ✓ tests/pipeline.test.ts       (10 tests)
 ✓ tests/browser-bundle.test.ts (13 tests)
-Test Files  6 passed (6)       Tests  108 passed (108)
+✓ tests/mcp-client.test.ts     ( 1 test)
+Test Files  7 passed (7)       Tests  115 passed (115)
 ```
 
 覆盖：合法/非法语法、全部错误码、location 拆分、脱敏、有界搜索的边界与上限、官方价 vs 菜单价、Replay 永不冒充 Live、端到端流水线，

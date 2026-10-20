@@ -12,11 +12,15 @@ export interface LiveClientConfig {
   timeoutMs?: number;
 }
 
+const DEFAULT_TIMEOUT_MS = 20_000;
+
 function mapError(error: unknown): { errorCode: string; message: string } {
   const raw = error instanceof Error ? error.message : String(error);
   if (/\b401\b/.test(raw)) return { errorCode: 'E401', message: 'MCP 鉴权失败：Token 错误或已过期' };
   if (/\b429\b/.test(raw)) return { errorCode: 'E429', message: 'MCP 请求被限流（每 Token 每分钟 600 次）' };
-  if (/timeout|timed out|ETIMEDOUT/i.test(raw)) return { errorCode: 'E429', message: 'MCP 请求超时' };
+  // Timeouts are NOT rate limiting — reporting them as E429 sent users hunting
+  // for a quota problem that did not exist. E408 is its own diagnosis.
+  if (/timeout|timed out|ETIMEDOUT/i.test(raw)) return { errorCode: 'E408', message: 'MCP 请求超时' };
   return { errorCode: 'E500', message: `MCP 调用失败：${raw}` };
 }
 
@@ -48,18 +52,61 @@ function decode(result: unknown): unknown {
  */
 export class LiveMcpClient implements McdClient {
   readonly mode = 'live' as const;
-  private readonly client: Client;
-  private readonly transport: StreamableHTTPClientTransport;
+  private client!: Client;
+  private transport!: StreamableHTTPClientTransport;
   private connected = false;
+  private readonly url: URL;
+  private readonly token: string;
+  private readonly timeoutMs: number;
 
   constructor(config: LiveClientConfig) {
     if (!config.token) {
       throw new Error('MCD_MCP_TOKEN is empty. Set it in .env (git-ignored) before using live mode.');
     }
+    this.url = new URL(config.url ?? 'https://mcp.mcd.cn');
+    this.token = config.token;
+    this.timeoutMs = config.timeoutMs && config.timeoutMs > 0 ? config.timeoutMs : DEFAULT_TIMEOUT_MS;
+    this.openTransport();
+  }
+
+  /** (Re)build the SDK client + transport pair. Used on construction and after a timeout. */
+  private openTransport(): void {
     this.client = new Client({ name: 'mealscript', version: '0.1.0' });
-    this.transport = new StreamableHTTPClientTransport(new URL(config.url ?? 'https://mcp.mcd.cn'), {
-      requestInit: { headers: { Authorization: `Bearer ${config.token}` } },
+    this.transport = new StreamableHTTPClientTransport(this.url, {
+      requestInit: { headers: { Authorization: `Bearer ${this.token}` } },
     });
+    this.connected = false;
+  }
+
+  /**
+   * A timed-out request may leave the underlying stream wedged; the next call
+   * would then time out too. Dropping the pair makes the following call connect
+   * from scratch instead of inheriting the dead one.
+   */
+  private async resetTransport(): Promise<void> {
+    try {
+      // Bounded too: a wedged transport can make close() hang as well, and the
+      // whole point of this path is to stop waiting forever.
+      await this.withTimeout(this.client.close(), 1000, 'close');
+    } catch {
+      /* best effort — the connection is already considered dead */
+    }
+    this.openTransport();
+  }
+
+  /** Reject if `task` has not settled within `ms`. Never leaves a dangling timer. */
+  private async withTimeout<T>(task: Promise<T>, ms: number, label: string): Promise<T> {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    try {
+      return await Promise.race([
+        task,
+        new Promise<never>((_, reject) => {
+          timer = setTimeout(() => reject(new Error(`${label} timeout after ${ms}ms`)), ms);
+        }),
+      ]);
+    } finally {
+      if (timer !== undefined) clearTimeout(timer);
+    }
   }
 
   private async ensureConnected(): Promise<void> {
@@ -69,16 +116,28 @@ export class LiveMcpClient implements McdClient {
   }
 
   async listTools(): Promise<unknown> {
-    await this.ensureConnected();
-    return this.client.listTools();
+    return this.withTimeout(
+      (async () => {
+        await this.ensureConnected();
+        return this.client.listTools();
+      })(),
+      this.timeoutMs,
+      'listTools',
+    );
   }
 
   async callTool<T>(name: McdToolName, args: Record<string, unknown>): Promise<ToolResult<T>> {
     if (FORBIDDEN_TOOLS.includes(name)) throw new ForbiddenToolError(name);
     const startedAt = Date.now();
     try {
-      await this.ensureConnected();
-      const result = await this.client.callTool({ name, arguments: args });
+      const result = await this.withTimeout(
+        (async () => {
+          await this.ensureConnected();
+          return this.client.callTool({ name, arguments: args });
+        })(),
+        this.timeoutMs,
+        name,
+      );
       const payload = decode(result) as { success?: boolean; code?: number; message?: string; data?: T } | T;
       const envelope = payload as { success?: boolean; data?: T; message?: string };
       if (envelope && envelope.success === false) {
@@ -88,6 +147,7 @@ export class LiveMcpClient implements McdClient {
       return { ok: true, data: payload as T, durationMs: Date.now() - startedAt };
     } catch (error) {
       const mapped = mapError(error);
+      if (mapped.errorCode === 'E408') await this.resetTransport();
       return { ok: false, ...mapped, durationMs: Date.now() - startedAt };
     }
   }

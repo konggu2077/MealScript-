@@ -7,7 +7,9 @@ import type { Trace, TraceEvent, TraceMode, TracePhase, TraceStatus } from './ty
  * make the single-file HTML build fail.
  */
 function newId(): string {
-  const c: Crypto | undefined = (globalThis as { crypto?: Crypto }).crypto;
+  // Structural type rather than the global `Crypto` interface: this file is
+  // compiled without the DOM lib (the single-file build must stay bundleable).
+  const c = (globalThis as { crypto?: { randomUUID?: () => string } }).crypto;
   if (c && typeof c.randomUUID === 'function') return c.randomUUID();
   return `t-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 }

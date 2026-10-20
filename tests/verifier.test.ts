@@ -107,4 +107,77 @@ describe('price verification', () => {
     });
     expect(result.verified[0]?.evidence.simulated).toBe(true);
   });
+
+  it('picks the cheapest by official price even when menu order disagrees', async () => {
+    // Candidate order is "cheapest menu price first": c ¥10, a ¥20, b ¥25.
+    // b is discounted at checkout, so the official ranking is b ¥12 < a ¥20 < c ¥24.
+    // Taking the first N that *pass* would return c — the cheapest on the menu,
+    // not the cheapest at checkout.
+    const official = { a: 20, b: 12, c: 24 };
+    const one = (code: string, menu: number): Candidate => ({
+      items: [{ code, name: `商品-${code}`, priceCny: menu }],
+      menuTotalCny: menu,
+    });
+
+    const result = await verifyCandidates(fakeClient({ official }), 'STORE', [one('c', 10), one('b', 25), one('a', 20)], {
+      budgetCny: 100,
+      stopAfter: 1,
+    });
+
+    expect(result.status).toBe('BUILD_PASSED');
+    expect(result.verified[0]?.totalCny).toBe(12);
+  });
+
+  it('returns the verified list sorted by official price', async () => {
+    const official = { a: 20, b: 12, c: 24 };
+    const one = (code: string, menu: number): Candidate => ({
+      items: [{ code, name: `商品-${code}`, priceCny: menu }],
+      menuTotalCny: menu,
+    });
+
+    const result = await verifyCandidates(fakeClient({ official }), 'STORE', [one('c', 10), one('a', 20), one('b', 25)], {
+      budgetCny: 100,
+      stopAfter: 3,
+    });
+
+    expect(result.verified.map((v) => v.totalCny)).toEqual([12, 20, 24]);
+  });
+
+  it('verifies in parallel while respecting the call cap', async () => {
+    let inFlight = 0;
+    let peak = 0;
+    let calls = 0;
+
+    const slow: McdClient = {
+      mode: 'live',
+      async callTool<T>(_name: string, args: Record<string, unknown>): Promise<ToolResult<T>> {
+        calls += 1;
+        inFlight += 1;
+        peak = Math.max(peak, inFlight);
+        await new Promise((resolve) => setTimeout(resolve, 5));
+        inFlight -= 1;
+        const items = (args['items'] as Array<{ productCode: string; quantity: number }>) ?? [];
+        const fen = items.reduce((sum, i) => sum + (PRICES[i.productCode] ?? 0) * 100, 0);
+        return {
+          ok: true,
+          data: { success: true, data: { price: fen, productPrice: fen, discount: 0, productList: [] } } as T,
+          durationMs: 1,
+        };
+      },
+      async close() {},
+    };
+
+    const list = ['a', 'b', 'c', 'a', 'b', 'c'].map((code) => candidate([code]));
+    const result = await verifyCandidates(slow, 'STORE', list, {
+      budgetCny: 100,
+      maxVerifiedCalls: 6,
+      concurrency: 3,
+    });
+
+    expect(calls).toBe(6);
+    expect(result.checked).toBe(6);
+    // Proves it is actually concurrent, and that the limit is honoured.
+    expect(peak).toBeGreaterThan(1);
+    expect(peak).toBeLessThanOrEqual(3);
+  });
 });

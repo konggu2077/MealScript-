@@ -8,7 +8,8 @@
  * Runtime codes are produced by the MCP adapter / verifier and are re-exported
  * here so tooling has a single source of truth:
  *   E211 RequiredProductNotFound · E220 NoVerifiedCandidate · E301 UnavailableProduct
- *   E401 MCPAuthenticationFailed · E429 MCPRateLimited · E500 PriceVerificationFailed
+ *   E401 MCPAuthenticationFailed · E408 MCPTimeout · E429 MCPRateLimited
+ *   E500 PriceVerificationFailed
  */
 
 export type DiagnosticSeverity = 'error' | 'warning';
@@ -47,6 +48,7 @@ export const ERROR_SPECS: Record<string, ErrorSpec> = {
   E220: { code: 'E220', name: 'NoVerifiedCandidate', title: '已验证候选中无满足全部约束的组合' },
   E301: { code: 'E301', name: 'UnavailableProduct', title: '商品下架或不可售' },
   E401: { code: 'E401', name: 'MCPAuthenticationFailed', title: 'Token 错误或过期' },
+  E408: { code: 'E408', name: 'MCPTimeout', title: 'MCP 请求超时' },
   E429: { code: 'E429', name: 'MCPRateLimited', title: '请求被限制' },
   E500: { code: 'E500', name: 'PriceVerificationFailed', title: '官方价格计算失败或不可验证' },
 };

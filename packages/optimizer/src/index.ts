@@ -62,9 +62,11 @@ function matches(item: OptimizerItem, keyword: string): boolean {
  * Guarantees:
  *  - never returns an empty meal (min_items >= 1),
  *  - never explores beyond the declared window,
- *  - enumeration is capped, and the returned `stats` say honestly whether the
- *    search was exhaustive — so the UI can only claim "global optimum" when
- *    `exhaustive` is true.
+ *  - the enumeration cap bounds memory only, never the answer: the retained
+ *    set is always the cheapest `maxCombinations` combos, so top-K does not
+ *    depend on enumeration order,
+ *  - `stats.exhaustive` reports whether the *window* was searched in full, so
+ *    the UI can only claim "global optimum" when it is true.
  */
 export function buildCandidates(
   menu: OptimizerItem[],
@@ -141,24 +143,33 @@ export function buildCandidates(
   }
 
   // Ascending price: lets us break out of the inner loops as soon as the
-  // running total exceeds the budget, which keeps the search bounded.
+  // running total exceeds the budget. Because the pool is sorted, a later `j`
+  // (or `k`) can only be more expensive, so those `break`s are exact — the
+  // budget pruning never skips a combination that could have fit.
   const pool = [...allowed].sort((a, b) => a.priceCny - b.priceCny);
-  const candidates: Candidate[] = [];
+
+  // Retention is kept exact: hold the cheapest `maxCombinations` combos rather
+  // than the first ones encountered. Lexicographic order over a price-sorted
+  // pool is NOT monotonic in total — (0,1,60) is visited before (0,2,3) yet can
+  // cost more — so "fill up then stop accepting" silently returns a set that
+  // need not contain the global minimum.
+  const retained = new MaxHeapCandidates(maxCombinations);
   let enumerated = 0;
-  let truncated = false;
+  let dropped = 0;
 
   const push = (combo: OptimizerItem[]) => {
-    if (candidates.length >= maxCombinations) {
-      truncated = true;
-      return;
-    }
+    const total = round2(combo.reduce((sum, item) => sum + item.priceCny, 0));
+    if (total > budget) return;
     enumerated += 1;
-    const total = combo.reduce((sum, item) => sum + item.priceCny, 0);
-    if (total <= budget) candidates.push({ items: combo, menuTotalCny: round2(total) });
+    if (!retained.offer({ items: combo, menuTotalCny: total })) dropped += 1;
   };
 
   const min = Math.max(1, ir.minItems);
-  const max = Math.min(Math.max(min, ir.maxItems), 3);
+  const requestedMax = Math.max(min, ir.maxItems);
+  const max = Math.min(requestedMax, 3);
+  // The DSL rejects max_items > 3, but the optimizer is also called directly,
+  // so the silent clamp must still be reported honestly.
+  const windowClamped = requestedMax > max;
 
   for (let i = 0; i < pool.length; i += 1) {
     const a = pool[i];
@@ -183,6 +194,8 @@ export function buildCandidates(
     }
   }
 
+  const candidates = retained.toArray();
+
   // Every required keyword needs at least one matching item in the combo; the
   // remaining slots may hold anything the store sells (after exclude_keywords).
   const qualified = candidates.filter(
@@ -205,19 +218,19 @@ export function buildCandidates(
       candidates: [],
       errorCode: 'E220',
       message: `在已枚举的 ${enumerated} 个组合中，没有菜单价不超过 ${budget} 元的组合（${keywordHint}可提高预算，或把 min_items 调到 ${Math.max(1, ir.minItems - 1)} 试试）`,
-      stats: stats(enumerated, !truncated),
+      stats: stats(enumerated, !windowClamped),
     };
   }
+
+  const notes =
+    (dropped > 0 ? `，组合超过上限，已保留最便宜的 ${maxCombinations} 个` : '') +
+    (windowClamped ? '，max_items 超过 3，本次只搜索到 3 件' : '') +
+    (ir.requireKeywords.length > 0 ? `，已按主料与件数去重（${top.length} 个方案）` : '');
 
   return {
     ok: true,
     candidates: top,
-    stats: stats(
-      enumerated,
-      !truncated,
-      (truncated ? '，枚举已被上限截断' : '') +
-        (ir.requireKeywords.length > 0 ? `，已按主料与件数去重（${top.length} 个方案）` : ''),
-    ),
+    stats: stats(enumerated, !windowClamped, notes),
   };
 }
 
@@ -255,4 +268,72 @@ function pickDiverse(candidates: Candidate[], topK: number, keywords: string[]):
 
 function round2(value: number): number {
   return Math.round(value * 100) / 100;
+}
+
+/**
+ * Fixed-capacity max-heap of candidates keyed by `menuTotalCny`.
+ *
+ * Keeps the N cheapest combos seen so far in O(log N) per offer. This is what
+ * makes the enumeration cap safe: the cap bounds memory, but the *set* it holds
+ * is still the globally cheapest one, so top-K never depends on the cap.
+ */
+class MaxHeapCandidates {
+  private readonly heap: Candidate[] = [];
+
+  constructor(private readonly capacity: number) {}
+
+  /** False means the candidate was discarded because the heap was already cheaper. */
+  offer(candidate: Candidate): boolean {
+    if (this.capacity <= 0) return false;
+
+    if (this.heap.length < this.capacity) {
+      this.heap.push(candidate);
+      this.siftUp(this.heap.length - 1);
+      return true;
+    }
+
+    const worst = this.heap[0];
+    if (!worst || candidate.menuTotalCny >= worst.menuTotalCny) return false;
+    this.heap[0] = candidate;
+    this.siftDown(0);
+    return true;
+  }
+
+  toArray(): Candidate[] {
+    return [...this.heap];
+  }
+
+  private siftUp(start: number): void {
+    let index = start;
+    while (index > 0) {
+      const parent = (index - 1) >> 1;
+      const child = this.heap[index] as Candidate;
+      const mother = this.heap[parent] as Candidate;
+      if (mother.menuTotalCny >= child.menuTotalCny) break;
+      this.heap[index] = mother;
+      this.heap[parent] = child;
+      index = parent;
+    }
+  }
+
+  private siftDown(start: number): void {
+    const size = this.heap.length;
+    let index = start;
+    for (;;) {
+      const left = index * 2 + 1;
+      const right = left + 1;
+      let largest = index;
+      if (left < size && (this.heap[left] as Candidate).menuTotalCny > (this.heap[largest] as Candidate).menuTotalCny) {
+        largest = left;
+      }
+      if (right < size && (this.heap[right] as Candidate).menuTotalCny > (this.heap[largest] as Candidate).menuTotalCny) {
+        largest = right;
+      }
+      if (largest === index) return;
+      const a = this.heap[index] as Candidate;
+      this.heap[index] = this.heap[largest] as Candidate;
+      this.heap[largest] = a;
+      index = largest;
+    }
+  }
 }

@@ -34,15 +34,18 @@ export default defineConfig({
     environment: 'node',
     include: ['tests/**/*.test.ts', 'packages/**/src/**/*.test.ts'],
     reporters: ['default'],
+    // Inlining these keeps Vite from pre-bundling them into the OS temp dir,
+    // which is not writable in this sandbox (intermittent EPERM on cold runs).
+    deps: {
+      // The SSR optimiser also writes to the OS temp dir, which intermittently
+      // raises EPERM and silently drops a test file from the run. We inline
+      // everything we depend on, so it can be turned off outright.
+      // (`deps.optimizer` lives here, not under `server.deps`.)
+      optimizer: { ssr: { enabled: false }, web: { enabled: false } },
+    },
     server: {
-      // Inlining these keeps Vite from pre-bundling them into the OS temp dir,
-      // which is not writable in this sandbox (intermittent EPERM on cold runs).
       deps: {
         inline: [/@mealscript\//, /chevrotain/, /zod/, /@modelcontextprotocol/],
-        // The SSR optimiser still writes to the OS temp dir, which intermittently
-        // raises EPERM and silently drops a test file from the run. We inline
-        // everything we depend on, so it can be turned off outright.
-        optimizer: { ssr: { enabled: false } },
       },
     },
   },

@@ -37,13 +37,35 @@ export interface VerifyOptions {
   budgetCny: number;
   /** Cap on official calculate-price calls (rate limit is 600/min per token). */
   maxVerifiedCalls?: number;
-  /** Stop once this many candidates pass — they arrive cheapest-first. */
+  /** How many passing candidates to keep — lowest *official* price first. */
   stopAfter?: number;
+  /** Parallel calculate-price calls. Defaults to 3. */
+  concurrency?: number;
   now?: () => string;
 }
 
 const DEFAULT_MAX_CALLS = 8;
 const DEFAULT_STOP_AFTER = 3;
+/** Official price calls are I/O bound; 3 in flight stays far below 600/min. */
+const DEFAULT_CONCURRENCY = 3;
+
+type Verdict = { ok: true; value: VerifiedCandidate } | { ok: false; errorCode?: string; message?: string };
+
+/** Run `fn` over `items` with at most `limit` in flight, preserving input order. */
+async function mapWithConcurrency<T, R>(items: T[], limit: number, fn: (item: T) => Promise<R>): Promise<R[]> {
+  const results = new Array<R>(items.length);
+  let cursor = 0;
+  const workers = Array.from({ length: Math.min(Math.max(1, limit), items.length) }, async () => {
+    for (;;) {
+      const index = cursor;
+      cursor += 1;
+      if (index >= items.length) return;
+      results[index] = await fn(items[index] as T);
+    }
+  });
+  await Promise.all(workers);
+  return results;
+}
 
 /**
  * Price verification (dev brief §05).
@@ -51,6 +73,13 @@ const DEFAULT_STOP_AFTER = 3;
  * The only number that decides whether a candidate passes is the official
  * `calculate-price` result. Menu prices are used for ordering and coarse
  * pruning, never for the final budget judgement.
+ *
+ * Ordering matters: candidates arrive sorted by *menu* price, but the answer
+ * must be sorted by *official* price — a discounted combo can be cheaper at
+ * checkout than one that looked cheaper on the menu. So every candidate in the
+ * batch is priced (in parallel, then re-ordered by the official total) before
+ * the cheapest `stopAfter` are kept. Stopping at the first N that happen to
+ * pass would return the cheapest *by menu*, which is not the same thing.
  *
  * Failure policy: a failed or unparseable call is recorded and skipped. It is
  * never turned into a "success", and partial results are returned as-is.
@@ -63,19 +92,13 @@ export async function verifyCandidates(
 ): Promise<VerifyResult> {
   const maxCalls = options.maxVerifiedCalls ?? DEFAULT_MAX_CALLS;
   const stopAfter = options.stopAfter ?? DEFAULT_STOP_AFTER;
+  const concurrency = options.concurrency ?? DEFAULT_CONCURRENCY;
   const now = options.now ?? (() => new Date().toISOString());
 
-  const verified: VerifiedCandidate[] = [];
-  let checked = 0;
-  let rejected = 0;
-  let firstErrorCode: string | undefined;
-  let firstErrorMessage: string | undefined;
+  const batch = candidates.slice(0, Math.max(0, maxCalls));
+  const simulated = client.mode === 'replay';
 
-  for (const candidate of candidates) {
-    if (verified.length >= stopAfter) break;
-    if (checked >= maxCalls) break;
-    checked += 1;
-
+  const verdicts = await mapWithConcurrency(batch, concurrency, async (candidate): Promise<Verdict> => {
     const result = await verifyPrice(
       client,
       storeCode,
@@ -83,48 +106,55 @@ export async function verifyCandidates(
     );
 
     if (!result.ok || !result.quote) {
-      rejected += 1;
-      firstErrorCode ??= result.errorCode ?? 'E500';
-      firstErrorMessage ??= result.message ?? '官方价格计算失败';
-      continue;
+      return { ok: false, errorCode: result.errorCode ?? 'E500', message: result.message ?? '官方价格计算失败' };
     }
 
     const quote = result.quote;
-    const simulated = client.mode === 'replay';
+    if (quote.totalCny > options.budgetCny) return { ok: false };
+
     // Replay simulations carry productName = code; map back to real names.
     const nameByCode = new Map(candidate.items.map((item) => [item.code, item.name]));
-    const lines: VerifiedLine[] = quote.lines.map((line) => ({
-      productCode: line.productCode,
-      productName: nameByCode.get(line.productCode) ?? line.productName,
-      quantity: line.quantity,
-      subtotalCny: line.subtotalCny,
-    }));
+    return {
+      ok: true,
+      value: {
+        lines: quote.lines.map((line) => ({
+          productCode: line.productCode,
+          productName: nameByCode.get(line.productCode) ?? line.productName,
+          quantity: line.quantity,
+          subtotalCny: line.subtotalCny,
+        })),
+        totalCny: quote.totalCny,
+        budgetRemainingCny: Math.round((options.budgetCny - quote.totalCny) * 100) / 100,
+        evidence: { tool: 'calculate-price', verifiedAt: now(), simulated },
+      },
+    };
+  });
 
-    if (quote.totalCny > options.budgetCny) {
-      rejected += 1;
-      continue;
-    }
+  const checked = batch.length;
+  const rejected = verdicts.filter((verdict) => !verdict.ok).length;
+  const firstError = verdicts.find(
+    (verdict): verdict is { ok: false; errorCode: string; message: string } =>
+      !verdict.ok && typeof verdict.errorCode === 'string',
+  );
 
-    verified.push({
-      lines,
-      totalCny: quote.totalCny,
-      budgetRemainingCny: Math.round((options.budgetCny - quote.totalCny) * 100) / 100,
-      evidence: { tool: 'calculate-price', verifiedAt: now(), simulated },
-    });
-  }
+  const verified = verdicts
+    .filter((verdict): verdict is { ok: true; value: VerifiedCandidate } => verdict.ok)
+    .map((verdict) => verdict.value)
+    .sort((a, b) => a.totalCny - b.totalCny)
+    .slice(0, Math.max(0, stopAfter));
 
   if (verified.length > 0) {
     return { status: 'BUILD_PASSED', verified, checked, rejected };
   }
 
-  if (firstErrorCode) {
+  if (firstError) {
     return {
       status: 'MCP_ERROR',
       verified: [],
       checked,
       rejected,
-      errorCode: firstErrorCode,
-      message: firstErrorMessage,
+      errorCode: firstError.errorCode,
+      message: firstError.message,
     };
   }
 

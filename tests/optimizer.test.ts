@@ -243,4 +243,41 @@ describe('bounded combination search', () => {
     expect(Date.now() - started).toBeLessThan(2000);
     expect(result.candidates.length).toBeLessThanOrEqual(12);
   });
+
+  it('retention keeps the globally cheapest combos, not the first ones enumerated', () => {
+    // Enumeration is lexicographic over a price-sorted pool, which is not
+    // monotonic in total: for prices 1,2,3,100 the pair (0,3)=101 is visited
+    // before (1,2)=5. A "fill up then refuse" cap keeps 101 and loses the real
+    // third-cheapest combo.
+    const skewed: OptimizerItem[] = [
+      { code: 'p0', name: 'A', priceCny: 1 },
+      { code: 'p1', name: 'B', priceCny: 2 },
+      { code: 'p2', name: 'C', priceCny: 3 },
+      { code: 'p3', name: 'D', priceCny: 100 },
+    ];
+
+    const result = buildCandidates(
+      skewed,
+      { requireKeywords: [], excludeKeywords: [], minItems: 2, maxItems: 2, budget: { amountCny: 200 } },
+      { maxCombinations: 3, topK: 3 },
+    );
+
+    expect(result.candidates.map((candidate) => candidate.menuTotalCny)).toEqual([3, 4, 5]);
+  });
+
+  it('says so when the retention cap dropped cheaper-or-equal combos', () => {
+    const result = buildCandidates(
+      MENU,
+      { requireKeywords: [], excludeKeywords: [], minItems: 2, maxItems: 2, budget: { amountCny: 100 } },
+      { maxCombinations: 2 },
+    );
+    expect(result.stats.searchScope).toContain('已保留最便宜的');
+  });
+
+  it('reports a clamped max_items instead of claiming exhaustiveness', () => {
+    // The DSL rejects max_items > 3, but direct callers are not protected.
+    const result = buildCandidates(MENU, { ...base, maxItems: 5, budget: { amountCny: 100 } });
+    expect(result.stats.exhaustive).toBe(false);
+    expect(result.stats.searchScope).toContain('max_items 超过 3');
+  });
 });
