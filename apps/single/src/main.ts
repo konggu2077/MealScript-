@@ -6,12 +6,24 @@
  * safe to open offline and safe to publish.
  */
 import { compile } from '@mealscript/compiler';
+import { EXAMPLES, LOCATIONS, PHASES, PHASE_HINTS } from '@mealscript/content';
 import { runBuild } from '@mealscript/verifier/pipeline';
 import { FixtureClient, type ReplayFixture } from '../../../packages/mcp-adapter/src/browser.ts';
 // @ts-ignore -- resolved by the bundler, not by tsc
 import successFixture from '../../../fixtures/replay-success.json';
 
 export const FIXTURE = successFixture as unknown as ReplayFixture;
+
+/**
+ * Presentation data shared with the Playground. The page's own script reads
+ * these instead of keeping a second copy — see `packages/content`.
+ */
+export const CONTENT = {
+  EXAMPLES: EXAMPLES.map((example) => ({ id: example.id, label: example.label, src: example.source })),
+  LOCATIONS,
+  PHASES: PHASES.map((phase) => phase.id),
+  PHASE_CN: PHASE_HINTS,
+};
 
 export interface KeywordDictionary {
   /** Menu category names, e.g. 小食 / 甜品冰淇淋 / 麦咖啡™. */

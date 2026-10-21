@@ -4,6 +4,7 @@ const nextConfig = {
   // Workspace packages ship TypeScript sources (no build step in v0.1).
   transpilePackages: [
     '@mealscript/compiler',
+    '@mealscript/content',
     '@mealscript/mcp-adapter',
     '@mealscript/optimizer',
     '@mealscript/verifier',

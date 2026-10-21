@@ -1,15 +1,10 @@
 'use client';
 
 import type { TraceEvent, TracePhase } from '@mealscript/trace';
+import { PHASES as SHARED_PHASES } from '@mealscript/content';
 
-const PHASES: { id: TracePhase; label: string; hint: string }[] = [
-  { id: 'parse', label: 'Parse', hint: '词法与语法分析' },
-  { id: 'check', label: 'Check', hint: '语义检查与 IR' },
-  { id: 'menu', label: 'Menu', hint: '查询门店与菜单' },
-  { id: 'optimize', label: 'Optimize', hint: '有界组合搜索' },
-  { id: 'price', label: 'Price', hint: '官方价格校验' },
-  { id: 'result', label: 'Result', hint: '生成 Build Report' },
-];
+// 阶段名与单文件版共用一份，避免两边措辞漂移。
+const PHASES = SHARED_PHASES as { id: TracePhase; label: string; hint: string }[];
 
 function statusOf(events: TraceEvent[], phase: TracePhase): { state: string; duration?: number } {
   const stages = events.filter((e) => e.phase === phase && e.kind === 'stage');

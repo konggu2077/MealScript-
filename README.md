@@ -3,7 +3,7 @@
 <p align="left">
   <img alt="node &gt;= 20" src="docs/badges/node.svg">
   <img alt="workspace npm" src="docs/badges/workspace.svg">
-  <img alt="tests 129 passed" src="docs/badges/tests.svg">
+  <img alt="tests 130 passed" src="docs/badges/tests.svg">
   <img alt="license MIT" src="docs/badges/license.svg">
 </p>
 
@@ -97,7 +97,7 @@ npm install
 # 1) 不依赖任何凭据，先验证编译器是真的
 npm run compile:cli examples/budget.meal
 
-# 2) 跑全部测试（129 个）
+# 2) 跑全部测试（130 个）
 npm test
 
 # 3) 启动网页 Playground
@@ -172,7 +172,7 @@ npm run fixture:record -- --store=1950556                     # 指定门店
 ```
 mealscript/
 ├── apps/playground/          Next.js 演示界面（Monaco 编辑器 + 阶段流 + Build Report + Trace）
-├── apps/single/              单文件离线版的打包入口与 HTML 模板（与 Playground 共用同一套色板）
+├── apps/single/              单文件离线版的打包入口与 HTML 模板（示例/地点/阶段名来自 packages/content）
 ├── build/single.mjs          单文件构建脚本（esbuild IIFE + 内联 + 泄露扫描）
 ├── build/record-fixture.ts   从实时 MCP 重新录制 fixture（只读 + 递归脱敏 + 差异报告）
 ├── dist/mealscript.html      产物：自包含单文件网页（已提交，可直接双击打开）
@@ -181,10 +181,11 @@ mealscript/
 │   ├── mcp-adapter/          官方 MCP 客户端、Zod 校验、归一化、Replay Fixture
 │   ├── optimizer/            有界组合搜索、去重与排序
 │   ├── verifier/             官方价格校验、证据、完整构建流水线
+│   ├── content/              两套 UI 共用的示例 / 地点 / 阶段名（纯数据，无逻辑）
 │   └── trace/                统一执行轨迹与脱敏
 ├── examples/                 三份 .meal 示例（1 份正确 + 2 份故意写错）
 ├── fixtures/                 脱敏 Replay 案例（成功 / 失败）
-├── tests/                    129 个单元与集成测试
+├── tests/                    130 个单元与集成测试
 ├── CONTEST_DECLARATION.md    官方参赛声明原文（未改动一个字）
 ├── MCP_INTEGRATION.md        实际使用的 MCP Server / Tool / 调用流程
 ├── mcp-config.example.json   配置示例（只有占位符）
@@ -329,9 +330,9 @@ npm test
 ✓ tests/trace.test.ts          (14 tests)
 ✓ tests/verifier.test.ts       (13 tests)
 ✓ tests/pipeline.test.ts       (10 tests)
-✓ tests/browser-bundle.test.ts (15 tests)
+✓ tests/browser-bundle.test.ts (16 tests)
 ✓ tests/mcp-client.test.ts     ( 1 test)
-Test Files  7 passed (7)       Tests  129 passed (129)
+Test Files  7 passed (7)       Tests  130 passed (130)
 ```
 
 覆盖：合法/非法语法、全部错误码、location 拆分、脱敏、有界搜索的边界与上限、官方价 vs 菜单价、Replay 永不冒充 Live、端到端流水线，

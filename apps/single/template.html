@@ -185,28 +185,15 @@ footer code{font-family:var(--mono);color:var(--fg2)}
 <script>{{BUNDLE}}</script>
 <script>
 (function(){
-  var LOCATIONS=[
-    '北京市海淀区五道口','北京市海淀区中关村','北京市朝阳区三里屯','北京市朝阳区国贸',
-    '北京市朝阳区望京','北京市朝阳区大悦城','北京市东城区王府井','北京市西城区西单',
-    '上海市浦东新区陆家嘴','上海市徐汇区徐家汇','深圳市南山区科技园','广州市天河区体育西路',
-    '成都市锦江区春熙路','杭州市西湖区文三路'
-  ];
-  var EXAMPLES=[
-    {id:'budget',label:'经典 · 35 元要汉堡不要咖啡',src:'meal lunch {\n  location: "北京市海淀区五道口";\n  mode: pickup;\n  budget: <= 35 CNY;\n  require_keyword: "汉堡";\n  exclude_keywords: ["咖啡"];\n  min_items: 1;\n  max_items: 2;\n  optimize: min(total_price);\n  execution: dry_run;\n}'},
-    {id:'combo',label:'两件套 · 汉堡再配一件',src:'meal combo {\n  location: "北京市朝阳区三里屯";\n  mode: pickup;\n  budget: <= 30 CNY;\n  require_keyword: "汉堡";\n  min_items: 2;\n  max_items: 2;\n  optimize: min(total_price);\n  execution: dry_run;\n}'},
-    {id:'repeat',label:'同款两份 · 两个人各一杯饮品',src:'meal drinks {\n  location: "北京市朝阳区三里屯";\n  mode: pickup;\n  budget: <= 20 CNY;\n  require_keyword: "饮品";\n  exclude_keywords: ["甜品", "小食"];\n  min_items: 2;\n  max_items: 2;\n  allow_repeat: true;\n  optimize: min(total_price);\n  execution: dry_run;\n}'},
-    {id:'multi',label:'多关键词 · 汉堡 + 麦旋风（两个都要）',src:'meal multi {\n  location: "北京市海淀区五道口";\n  mode: pickup;\n  budget: <= 45 CNY;\n  require_keyword: "巨无霸牛鱼肉堡, 麦旋风";\n  exclude_keywords: ["脆脆薯条"];\n  min_items: 2;\n  max_items: 3;\n  optimize: min(total_price);\n  execution: dry_run;\n}'},
-    {id:'category',label:'按分类点 · 甜品 ≤ 20 元',src:'meal dessert {\n  location: "北京市海淀区中关村";\n  mode: pickup;\n  budget: <= 20 CNY;\n  require_keyword: "甜品";\n  min_items: 1;\n  max_items: 2;\n  optimize: min(total_price);\n  execution: dry_run;\n}'},
-    {id:'drink',label:'按分类点 · 饮品 ≤ 15 元',src:'meal drink {\n  location: "北京市东城区王府井";\n  mode: pickup;\n  budget: <= 15 CNY;\n  require_keyword: "饮品";\n  exclude_keywords: ["咖啡"];\n  min_items: 1;\n  max_items: 1;\n  optimize: min(total_price);\n  execution: dry_run;\n}'},
-    {id:'syntax',label:'故意写错 · 漏分号 E001',src:'meal lunch {\n  location: "北京市海淀区五道口";\n  mode: pickup;\n  budget: <= 35 CNY\n  require_keyword: "汉堡";\n  optimize: min(total_price);\n  execution: dry_run;\n}'},
-    {id:'semantic',label:'故意写错 · 负预算 + 外送 E101/E102',src:'meal lunch {\n  location: "上海市浦东新区陆家嘴";\n  mode: delivery;\n  budget: <= -10 CNY;\n  require_keyword: "汉堡";\n  optimize: min(total_price);\n  execution: dry_run;\n}'},
-    {id:'unknown',label:'不存在的词 · 饮料 E211',src:'meal drink {\n  location: "深圳市南山区科技园";\n  mode: pickup;\n  budget: <= 15 CNY;\n  require_keyword: "饮料";\n  min_items: 1;\n  max_items: 1;\n  optimize: min(total_price);\n  execution: dry_run;\n}'},
-    {id:'impossible',label:'预算过低 · 无可行组合 E220',src:'meal tiny {\n  location: "成都市锦江区春熙路";\n  mode: pickup;\n  budget: <= 3 CNY;\n  require_keyword: "汉堡";\n  min_items: 1;\n  max_items: 1;\n  optimize: min(total_price);\n  execution: dry_run;\n}'}
-  ];
-  var PHASES=['parse','check','menu','optimize','price','result'];
-  var PHASE_CN={parse:'词法与语法分析',check:'语义检查与 IR',menu:'查询门店与菜单',optimize:'有界组合搜索',price:'官方价格校验',result:'生成 Build Report'};
-  var STATUS_CN={BUILD_PASSED:'BUILD_PASSED',NO_VERIFIED_MATCH:'NO_VERIFIED_MATCH',COMPILATION_ERROR:'COMPILATION_ERROR',MCP_ERROR:'MCP_ERROR',REPLAY_RESULT:'REPLAY_RESULT'};
+  // 示例程序、地点候选、阶段名都来自 packages/content —— 与 Playground 共用
+  // 同一份数据，避免两边各写一套后慢慢漂移。由 bundle 作为 CONTENT 注入。
   var MS=window.MealScript;
+  var CONTENT=(MS&&MS.CONTENT)||{EXAMPLES:[],LOCATIONS:[],PHASES:[],PHASE_CN:{}};
+  var LOCATIONS=CONTENT.LOCATIONS;
+  var EXAMPLES=CONTENT.EXAMPLES;
+  var PHASES=CONTENT.PHASES;
+  var PHASE_CN=CONTENT.PHASE_CN;
+  var STATUS_CN={BUILD_PASSED:'BUILD_PASSED',NO_VERIFIED_MATCH:'NO_VERIFIED_MATCH',COMPILATION_ERROR:'COMPILATION_ERROR',MCP_ERROR:'MCP_ERROR',REPLAY_RESULT:'REPLAY_RESULT'};
   var ta=document.getElementById('src'),hl=document.getElementById('hl');
   var chips=document.getElementById('chips'),stagesEl=document.getElementById('stages');
   var resultEl=document.getElementById('result'),diagsEl=document.getElementById('diags'),traceEl=document.getElementById('trace');

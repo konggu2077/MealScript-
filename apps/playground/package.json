@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "@mealscript/compiler": "*",
+    "@mealscript/content": "*",
     "@mealscript/mcp-adapter": "*",
     "@mealscript/optimizer": "*",
     "@mealscript/trace": "*",

@@ -238,6 +238,22 @@ describe('single-file UI glue (DOM stub)', () => {
     expect(ids['trace'].children.length).toBeGreaterThan(0);
   });
 
+  it('takes examples, locations and stage names from the shared content bundle', async () => {
+    const html = readFileSync(join(root, 'dist/mealscript.html'), 'utf8');
+    // The duplication this guards against: a second hand-maintained copy inside
+    // template.html drifting away from the Playground's list.
+    expect(html).not.toContain('var EXAMPLES=[');
+    expect(html).not.toContain('var LOCATIONS=[');
+    expect(html).toContain('CONTENT.EXAMPLES');
+
+    const { ids, sandbox } = await loadPage();
+    const content = sandbox.window.MealScript.CONTENT;
+    expect(content.EXAMPLES.length).toBeGreaterThanOrEqual(7);
+    expect(ids['chips'].children.length).toBe(content.EXAMPLES.length);
+    expect(content.LOCATIONS.length).toBeGreaterThanOrEqual(10);
+    expect(content.PHASES).toEqual(['parse', 'check', 'menu', 'optimize', 'price', 'result']);
+  });
+
   it('shows diagnostics in the UI when the source has a semantic error', async () => {
     const { ids } = await loadPage();
     ids['src'].value = 'meal lunch {\n  location: "北京市海淀区五道口";\n  budget: <= -10 CNY;\n}\n';
