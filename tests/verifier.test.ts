@@ -6,8 +6,11 @@ import type { Candidate } from '@mealscript/optimizer';
 /** Unit price in YUAN, keyed by product code. */
 const PRICES: Record<string, number> = { a: 20, b: 25, c: 10 };
 
-function fakeClient(options: { mode?: 'live' | 'replay'; official?: Record<string, number>; fail?: boolean } = {}): McdClient {
+function fakeClient(
+  options: { mode?: 'live' | 'replay'; official?: Record<string, number>; fail?: boolean; discountCny?: number } = {},
+): McdClient {
   const official = options.official ?? PRICES;
+  const discountFen = Math.round((options.discountCny ?? 0) * 100);
   return {
     mode: options.mode ?? 'live',
     async callTool<T>(name: string, args: Record<string, unknown>): Promise<ToolResult<T>> {
@@ -27,7 +30,7 @@ function fakeClient(options: { mode?: 'live' | 'replay'; official?: Record<strin
       });
       const payload = {
         success: true,
-        data: { price: fen, productPrice: fen, discount: 0, productList },
+        data: { price: fen - discountFen, productPrice: fen, discount: discountFen, productList },
       };
       return { ok: true, data: payload as T, durationMs: 1 };
     },
@@ -61,6 +64,62 @@ describe('price verification', () => {
     const result = await verifyCandidates(fakeClient(), 'STORE', [candidate(['a', 'c'])], { budgetCny: 40 });
     expect(result.verified[0]?.lines.map((l) => l.productName)).toEqual(['商品-a', '商品-c']);
   });
+
+  it('surfaces the official discount instead of silently dropping it', async () => {
+    const result = await verifyCandidates(fakeClient({ discountCny: 5 }), 'STORE', [candidate(['a'])], {
+      budgetCny: 25,
+    });
+    const best = result.verified[0];
+    // 20 元原价，官方优惠 5 元 → 实付 15。三者都必须来自官方报价。
+    expect(best?.productTotalCny).toBe(20);
+    expect(best?.discountCny).toBe(5);
+    expect(best?.totalCny).toBe(15);
+    expect(best?.budgetRemainingCny).toBe(10);
+    // 行小计是折扣前的价，不能被 discount 污染。
+    expect(best?.lines[0]?.subtotalCny).toBe(20);
+  });
+
+  it('reports zero discount when the official quote has none', async () => {
+    const result = await verifyCandidates(fakeClient(), 'STORE', [candidate(['a'])], { budgetCny: 25 });
+    expect(result.verified[0]?.discountCny).toBe(0);
+    expect(result.verified[0]?.productTotalCny).toBe(20);
+  });
+
+
+  it('prices a repeated product with its real quantity, not as one piece', async () => {
+    const seen: Array<Array<{ productCode: string; quantity: number }>> = [];
+    const client: McdClient = {
+      mode: 'replay',
+      async callTool<T>(name: string, args: Record<string, unknown>): Promise<ToolResult<T>> {
+        seen.push((args['items'] as Array<{ productCode: string; quantity: number }>) ?? []);
+        const payload = {
+          success: true,
+          data: {
+            price: 2000,
+            productPrice: 2000,
+            discount: 0,
+            productList: [{ productCode: 'a', productName: 'a', quantity: 2, subtotal: 2000 }],
+          },
+        };
+        return { ok: true, data: payload as T, durationMs: 1 };
+      },
+      async close() {},
+    };
+    const twoOfA: Candidate = {
+      items: [
+        { code: 'a', name: '商品-a', priceCny: 10 },
+        { code: 'a', name: '商品-a', priceCny: 10 },
+      ],
+      menuTotalCny: 20,
+    };
+
+    const result = await verifyCandidates(client, 'STORE', [twoOfA], { budgetCny: 25 });
+
+    // 一件商品只发一行请求，quantity = 2 —— 否则官方会按一件结算。
+    expect(seen[0]).toEqual([{ productCode: 'a', quantity: 2 }]);
+    expect(result.verified[0]?.totalCny).toBe(20);
+  });
+
 
   it('returns MCP_ERROR and never a fake success when the tool fails', async () => {
     const result = await verifyCandidates(fakeClient({ fail: true }), 'STORE', [candidate(['a'])], { budgetCny: 100 });

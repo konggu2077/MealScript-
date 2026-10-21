@@ -168,6 +168,30 @@ describe('MealScript semantic checks', () => {
     expect(diagnostic.line).toBe(10);
   });
 
+  it('allow_repeat defaults to off', () => {
+    const { ir } = compile(VALID);
+    expect(ir?.allowRepeat).toBe(false);
+  });
+
+  it('accepts allow_repeat: true', () => {
+    const result = compile(VALID.replace('  execution: dry_run;', '  allow_repeat: true;\n  execution: dry_run;'));
+    expect(result.ok).toBe(true);
+    expect(result.ir?.allowRepeat).toBe(true);
+  });
+
+  it('accepts an explicit allow_repeat: false', () => {
+    const result = compile(VALID.replace('  execution: dry_run;', '  allow_repeat: false;\n  execution: dry_run;'));
+    expect(result.ok).toBe(true);
+    expect(result.ir?.allowRepeat).toBe(false);
+  });
+
+  it('E001 — allow_repeat only takes true / false', () => {
+    const result = compile(VALID.replace('  execution: dry_run;', '  allow_repeat: yes;\n  execution: dry_run;'));
+    const diagnostic = firstAt(result.diagnostics, 'E001');
+    expect(diagnostic.message).toContain('allow_repeat');
+    expect(diagnostic.hint).toContain('true');
+  });
+
   it('E001 — a required field is missing', () => {
     const result = compile(code('meal lunch {', '  location: "北京市海淀区五道口";', '}'));
     const diagnostic = firstAt(result.diagnostics, 'E001');

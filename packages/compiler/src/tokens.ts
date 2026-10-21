@@ -34,6 +34,11 @@ export const KwExcludeKeywords = createToken({
 });
 export const KwMinItems = createToken({ name: 'KwMinItems', pattern: /min_items/, longer_alt: Identifier });
 export const KwMaxItems = createToken({ name: 'KwMaxItems', pattern: /max_items/, longer_alt: Identifier });
+export const KwAllowRepeat = createToken({
+  name: 'KwAllowRepeat',
+  pattern: /allow_repeat/,
+  longer_alt: Identifier,
+});
 export const KwOptimize = createToken({ name: 'KwOptimize', pattern: /optimize/, longer_alt: Identifier });
 export const KwExecution = createToken({ name: 'KwExecution', pattern: /execution/, longer_alt: Identifier });
 export const KwCny = createToken({ name: 'KwCny', pattern: /CNY/, longer_alt: Identifier });
@@ -66,6 +71,7 @@ export const allTokens = [
   KwExcludeKeywords,
   KwMinItems,
   KwMaxItems,
+  KwAllowRepeat,
   KwOptimize,
   KwExecution,
   KwCny,

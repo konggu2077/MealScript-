@@ -73,11 +73,25 @@ export default function ResultCard({ result }: { result: BuildResult | null }) {
                 className="flex items-center gap-2.5 border-b border-ink-700 px-3 py-2.5 text-sm last:border-b-0"
               >
                 <span className="min-w-0 flex-1 truncate">{line.productName}</span>
+                {/* 同款多份：官方回合并后的一行 + quantity，标出份数免得看起来像单价错了 */}
+                {line.quantity > 1 ? (
+                  <span className="shrink-0 rounded-[5px] border border-warn-line bg-warn-bg px-1.5 py-px font-mono text-xs text-gold-300">
+                    ×{line.quantity}
+                  </span>
+                ) : null}
                 <span className="ml-auto font-mono text-xs text-fg-3">#{line.productCode}</span>
                 <span className="w-[78px] shrink-0 text-right font-mono">¥{line.subtotalCny.toFixed(2)}</span>
               </div>
             ))}
           </div>
+
+          {/* 折扣取官方 calculate-price 的 productPrice - price；无折扣时不渲染，避免噪声 */}
+          {best.discountCny > 0 ? (
+            <p className="-mt-1 mb-2.5 flex items-baseline gap-2 text-[13px] text-fg-3">
+              原价 <s className="font-mono">¥{best.productTotalCny.toFixed(2)}</s>
+              <b className="font-semibold text-ok-fg">已省 ¥{best.discountCny.toFixed(2)}</b>
+            </p>
+          ) : null}
 
           <div className="mb-3 flex items-baseline gap-3 rounded-[10px] border border-warn-line bg-warn-bg px-4 py-3.5">
             <span className="font-mono text-[28px] font-semibold leading-none text-gold-300">

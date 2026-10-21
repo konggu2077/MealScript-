@@ -19,6 +19,7 @@ export type FieldKind =
   | 'exclude_keywords'
   | 'min_items'
   | 'max_items'
+  | 'allow_repeat'
   | 'optimize'
   | 'execution';
 

@@ -1,5 +1,5 @@
 import { verifyPrice, type McdClient } from '@mealscript/mcp-adapter';
-import type { Candidate } from '@mealscript/optimizer';
+import { aggregateItems, type Candidate } from '@mealscript/optimizer';
 
 export interface VerifiedLine {
   productCode: string;
@@ -10,8 +10,18 @@ export interface VerifiedLine {
 
 export interface VerifiedCandidate {
   lines: VerifiedLine[];
-  /** Official settlement price in yuan. */
+  /** Official settlement price in yuan — what the user actually pays. */
   totalCny: number;
+  /**
+   * Sum of line prices *before* automatic discounts, as quoted by the official
+   * `calculate-price` call. Equal to `totalCny` when nothing is discounted.
+   *
+   * Always derived from the official quote, never recomputed from menu prices:
+   * the whole point is that only McDonald's own arithmetic is authoritative.
+   */
+  productTotalCny: number;
+  /** Automatic discount applied by the official quote (`productTotalCny - totalCny`). */
+  discountCny: number;
   budgetRemainingCny: number;
   evidence: {
     tool: 'calculate-price';
@@ -99,11 +109,13 @@ export async function verifyCandidates(
   const simulated = client.mode === 'replay';
 
   const verdicts = await mapWithConcurrency(batch, concurrency, async (candidate): Promise<Verdict> => {
-    const result = await verifyPrice(
-      client,
-      storeCode,
-      candidate.items.map((item) => ({ productCode: item.code, quantity: 1 })),
-    );
+    // One request line per product, with the real quantity — otherwise a meal
+    // of two 麦香鸡 would be priced as one.
+    const requestLines = aggregateItems(candidate.items).map((line) => ({
+      productCode: line.item.code,
+      quantity: line.qty,
+    }));
+    const result = await verifyPrice(client, storeCode, requestLines);
 
     if (!result.ok || !result.quote) {
       return { ok: false, errorCode: result.errorCode ?? 'E500', message: result.message ?? '官方价格计算失败' };
@@ -124,6 +136,11 @@ export async function verifyCandidates(
           subtotalCny: line.subtotalCny,
         })),
         totalCny: quote.totalCny,
+        productTotalCny: quote.productTotalCny,
+        // Trust the official arithmetic for the gap: some receipts quote a
+        // productTotal that does not exactly equal sum(lines) (rounding, or a
+        // discount applied at order level).
+        discountCny: Math.round((quote.productTotalCny - quote.totalCny) * 100) / 100,
         budgetRemainingCny: Math.round((options.budgetCny - quote.totalCny) * 100) / 100,
         evidence: { tool: 'calculate-price', verifiedAt: now(), simulated },
       },

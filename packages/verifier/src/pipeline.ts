@@ -139,7 +139,7 @@ export async function runBuild(source: string, client: McdClient): Promise<Build
       tool: 'calculate-price',
       label: `官方结算价 ¥${candidate.totalCny.toFixed(2)}`,
       request: { storeCode: store.storeCode, items: candidate.lines.map((l) => ({ productCode: l.productCode, quantity: l.quantity })) },
-      response: { price: candidate.totalCny },
+      response: { price: candidate.totalCny, productPrice: candidate.productTotalCny, discount: candidate.discountCny },
     });
   }
 

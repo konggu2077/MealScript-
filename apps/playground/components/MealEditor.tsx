@@ -18,10 +18,11 @@ export function registerMeal(monaco: Monaco) {
       'exclude_keywords',
       'min_items',
       'max_items',
+      'allow_repeat',
       'optimize',
       'execution',
     ],
-    literals: ['pickup', 'delivery', 'dry_run', 'min', 'total_price'],
+    literals: ['pickup', 'delivery', 'dry_run', 'min', 'total_price', 'true', 'false'],
     units: ['CNY'],
     tokenizer: {
       root: [

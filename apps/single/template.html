@@ -90,9 +90,13 @@ button.run:disabled{opacity:.5;cursor:default}
 .line .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .line .code{margin-left:auto;font-family:var(--mono);font-size:12px;color:var(--fg3)}
 .line .amt{font-family:var(--mono);font-size:14px;color:var(--fg);min-width:78px;text-align:right}
+.line .qty{font-family:var(--mono);font-size:12px;color:var(--gold);background:var(--gold-bg);border:1px solid var(--gold-line);border-radius:5px;padding:1px 5px;flex:none}
 .total{display:flex;align-items:baseline;gap:12px;padding:14px 16px;border:1px solid var(--gold-line);border-radius:10px;background:var(--gold-bg);margin-bottom:12px}
 .total .big{font-size:28px;font-weight:600;color:var(--gold);font-family:var(--mono)}
 .total .sub{font-size:13px;color:var(--fg2)}
+.save{display:flex;align-items:baseline;gap:8px;margin:-2px 0 10px;font-size:13px;color:var(--fg3)}
+.save s{color:var(--fg3);font-family:var(--mono)}
+.save b{color:var(--green);font-weight:600}
 .evidence{font-size:12px;color:var(--fg3);line-height:1.7}
 .evidence code{font-family:var(--mono);color:var(--fg2)}
 .empty{color:var(--fg3);font-size:13px;padding:8px 0}
@@ -190,6 +194,7 @@ footer code{font-family:var(--mono);color:var(--fg2)}
   var EXAMPLES=[
     {id:'budget',label:'经典 · 35 元要汉堡不要咖啡',src:'meal lunch {\n  location: "北京市海淀区五道口";\n  mode: pickup;\n  budget: <= 35 CNY;\n  require_keyword: "汉堡";\n  exclude_keywords: ["咖啡"];\n  min_items: 1;\n  max_items: 2;\n  optimize: min(total_price);\n  execution: dry_run;\n}'},
     {id:'combo',label:'两件套 · 汉堡再配一件',src:'meal combo {\n  location: "北京市朝阳区三里屯";\n  mode: pickup;\n  budget: <= 30 CNY;\n  require_keyword: "汉堡";\n  min_items: 2;\n  max_items: 2;\n  optimize: min(total_price);\n  execution: dry_run;\n}'},
+    {id:'repeat',label:'同款两份 · 两个人各一杯饮品',src:'meal drinks {\n  location: "北京市朝阳区三里屯";\n  mode: pickup;\n  budget: <= 20 CNY;\n  require_keyword: "饮品";\n  exclude_keywords: ["甜品", "小食"];\n  min_items: 2;\n  max_items: 2;\n  allow_repeat: true;\n  optimize: min(total_price);\n  execution: dry_run;\n}'},
     {id:'multi',label:'多关键词 · 汉堡 + 麦旋风（两个都要）',src:'meal multi {\n  location: "北京市海淀区五道口";\n  mode: pickup;\n  budget: <= 45 CNY;\n  require_keyword: "巨无霸牛鱼肉堡, 麦旋风";\n  exclude_keywords: ["脆脆薯条"];\n  min_items: 2;\n  max_items: 3;\n  optimize: min(total_price);\n  execution: dry_run;\n}'},
     {id:'category',label:'按分类点 · 甜品 ≤ 20 元',src:'meal dessert {\n  location: "北京市海淀区中关村";\n  mode: pickup;\n  budget: <= 20 CNY;\n  require_keyword: "甜品";\n  min_items: 1;\n  max_items: 2;\n  optimize: min(total_price);\n  execution: dry_run;\n}'},
     {id:'drink',label:'按分类点 · 饮品 ≤ 15 元',src:'meal drink {\n  location: "北京市东城区王府井";\n  mode: pickup;\n  budget: <= 15 CNY;\n  require_keyword: "饮品";\n  exclude_keywords: ["咖啡"];\n  min_items: 1;\n  max_items: 1;\n  optimize: min(total_price);\n  execution: dry_run;\n}'},
@@ -210,7 +215,7 @@ footer code{font-family:var(--mono);color:var(--fg2)}
   var current='budget';
 
   function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
-  var KW={meal:1,location:1,mode:1,budget:1,require_keyword:1,exclude_keywords:1,min_items:1,max_items:1,optimize:1,execution:1};
+  var KW={meal:1,location:1,mode:1,budget:1,require_keyword:1,exclude_keywords:1,min_items:1,max_items:1,allow_repeat:1,optimize:1,execution:1};
   function highlight(src){
     var re=/(\/\/[^\n]*)|("(?:[^"\\\n]|\\.)*")|(\b\d+(?:\.\d+)?\b)|([A-Za-z_][A-Za-z0-9_]*)(?=\s*:)|([A-Za-z_][A-Za-z0-9_]*)|([{}()\[\];:,.<>=])/g;
     var out='',last=0,m;
@@ -307,11 +312,29 @@ footer code{font-family:var(--mono);color:var(--fg2)}
         v.lines.forEach(function(l){
           var row=document.createElement('div');row.className='line';
           var nm=document.createElement('span');nm.className='nm';nm.textContent=l.productName;
+          row.appendChild(nm);
+          // 同款多份时官方回的是合并后的一行 + quantity，这里把份数显式标出来，
+          // 否则「薯条 ¥20」看起来像单价写错了。
+          if(l.quantity>1){
+            var qb=document.createElement('span');qb.className='qty';qb.textContent='×'+l.quantity;
+            row.appendChild(qb);
+          }
           var cd=document.createElement('span');cd.className='code';cd.textContent='#'+l.productCode;
           var am=document.createElement('span');am.className='amt';am.textContent='¥'+l.subtotalCny.toFixed(2);
-          row.appendChild(nm);row.appendChild(cd);row.appendChild(am);box.appendChild(row);
+          row.appendChild(cd);row.appendChild(am);box.appendChild(row);
         });
         resultEl.appendChild(box);
+        // 折扣来自官方 calculate-price 的 productPrice - price，不是我们自己算的。
+        // 没有折扣时整行不出现，避免"原价 = 现价"这种噪声。
+        if(v.discountCny>0){
+          var sv=document.createElement('div');sv.className='save';
+          var orig=document.createElement('span');
+          orig.appendChild(document.createTextNode('原价 '));
+          var slash=document.createElement('s');slash.textContent='¥'+v.productTotalCny.toFixed(2);
+          orig.appendChild(slash);
+          var cut=document.createElement('b');cut.textContent='已省 ¥'+v.discountCny.toFixed(2);
+          sv.appendChild(orig);sv.appendChild(cut);resultEl.appendChild(sv);
+        }
         var tot=document.createElement('div');tot.className='total';
         var big=document.createElement('span');big.className='big';big.textContent='¥'+v.totalCny.toFixed(2);
         var sub=document.createElement('span');sub.className='sub';
@@ -389,9 +412,9 @@ footer code{font-family:var(--mono);color:var(--fg2)}
   var FIELD_SNIPPETS={
     'location':'location: "|"','mode':'mode: |','budget':'budget: <= | CNY',
     'require_keyword':'require_keyword: "|"','exclude_keywords':'exclude_keywords: ["|"]',
-    'min_items':'min_items: |','max_items':'max_items: |','optimize':'optimize: |','execution':'execution: |'
+    'min_items':'min_items: |','max_items':'max_items: |','allow_repeat':'allow_repeat: |','optimize':'optimize: |','execution':'execution: |'
   };
-  var VALUE_SUGGEST={mode:['pickup','delivery'],execution:['dry_run','live'],optimize:['min(total_price)']};
+  var VALUE_SUGGEST={mode:['pickup','delivery'],execution:['dry_run','live'],optimize:['min(total_price)'],allow_repeat:['true','false']};
   function acHide(){ac.style.display='none';acCtx=null;}
   function keywordPool(){
     var kw=(MS&&MS.KEYWORDS)||{categories:[],products:[],tags:[]};
@@ -419,7 +442,7 @@ footer code{font-family:var(--mono);color:var(--fg2)}
       return {kind:'keyword',start:q+1+cut+1+lead,partial:seg.slice(lead),used:used};
     }
     var head=val.slice(0,pos);
-    var vm=/(mode|execution|optimize)\s*:\s*([A-Za-z_()]*)$/.exec(head);
+    var vm=/(mode|execution|optimize|allow_repeat)\s*:\s*([A-Za-z_()]*)$/.exec(head);
     if(vm)return {kind:'value',field:vm[1],start:pos-vm[2].length,partial:vm[2]};
     var im=/([A-Za-z_][A-Za-z0-9_]*)$/.exec(head);
     if(im)return {kind:'field',start:pos-im[1].length,partial:im[1]};

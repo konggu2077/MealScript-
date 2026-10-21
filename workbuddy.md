@@ -69,7 +69,7 @@ $ npm run compile:cli examples/budget.meal
 BUILD_PASSED (front half — no MCP call was made)
 { "name": "lunch", "location": { "raw": "北京市海淀区五道口", "city": "北京市", "keyword": "海淀区五道口" },
   "mode": "pickup", "budget": { "amountCny": 35 }, "requireKeywords": ["汉堡"],
-  "excludeKeywords": ["咖啡"], "minItems": 1, "maxItems": 2,
+  "excludeKeywords": ["咖啡"], "minItems": 1, "maxItems": 2, "allowRepeat": false,
   "optimize": { "fn": "min", "target": "total_price" }, "execution": "dry_run" }
 
 $ npm run compile:cli examples/invalid-semantic.meal

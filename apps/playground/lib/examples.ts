@@ -30,6 +30,22 @@ export const EXAMPLES = [
 }`,
   },
   {
+    id: 'repeat',
+    label: '同款两份 · 两个人各一杯饮品',
+    source: `meal drinks {
+  location: "北京市朝阳区三里屯";
+  mode: pickup;
+  budget: <= 20 CNY;
+  require_keyword: "饮品";
+  exclude_keywords: ["甜品", "小食"];
+  min_items: 2;
+  max_items: 2;
+  allow_repeat: true;
+  optimize: min(total_price);
+  execution: dry_run;
+}`,
+  },
+  {
     id: 'multi-keyword',
     label: '多关键词 · 巨无霸牛鱼肉堡 + 麦旋风（两个都要）',
     source: `meal multi {

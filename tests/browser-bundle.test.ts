@@ -343,6 +343,31 @@ describe('single-file UI glue (DOM stub)', () => {
     expect(fields).toContain('exclude_keywords');
   });
 
+  it('completes allow_repeat and colours it as a field', async () => {
+    const { ids } = await loadPage();
+    const src = ids['src'];
+    const acEl = () => src.parentNode.children.find((c: any) => c.className === 'ac');
+
+    // 字段名补全
+    src.value = 'meal x {\n  allow';
+    src.selectionStart = src.selectionEnd = src.value.length;
+    fire(src, 'input');
+    expect(acEl().children.map((c: any) => c.children[0].textContent)).toEqual(['allow_repeat']);
+
+    // 取值补全：true / false 都要在候选里
+    src.value = 'meal x {\n  allow_repeat: ';
+    src.selectionStart = src.selectionEnd = src.value.length;
+    fire(src, 'input');
+    expect(acEl().children.map((c: any) => c.children[0].textContent)).toEqual(['true', 'false']);
+
+    // 高亮层把它当字段名（.pr）而不是普通标识符。
+    // 注：DOM 桩不解析 innerHTML，所以断言生成的 HTML 片段本身。
+    src.value = 'meal x {\n  allow_repeat: true;\n}';
+    src.selectionStart = src.selectionEnd = 0;
+    fire(src, 'input');
+    expect(ids['hl'].innerHTML).toContain('<span class="pr">allow_repeat</span>');
+  });
+
   it('a category keyword produces a verified result end to end', async () => {
     const { ids } = await loadPage();
     const category = sandboxKeywords().categories[0]!;
@@ -357,5 +382,27 @@ describe('single-file UI glue (DOM stub)', () => {
       .join(' ');
     expect(resultText).toContain('¥');
     expect(ids['runHint'].textContent).toMatch(/^完成 · /);
+  });
+
+  it('renders a ×N badge when one product fills several slots', async () => {
+    const { ids } = await loadPage();
+    ids['src'].value =
+      'meal drinks {\n  location: "北京市朝阳区三里屯";\n  mode: pickup;\n  budget: <= 20 CNY;\n' +
+      '  require_keyword: "饮品";\n  exclude_keywords: ["甜品", "小食"];\n' +
+      '  min_items: 2;\n  max_items: 2;\n  allow_repeat: true;\n' +
+      '  optimize: min(total_price);\n  execution: dry_run;\n}';
+    ids['run'].onclick();
+    await new Promise((r) => setTimeout(r, 400));
+
+    const walk = (node: any, acc: any[] = []): any[] => {
+      for (const child of node.children ?? []) {
+        acc.push(child);
+        walk(child, acc);
+      }
+      return acc;
+    };
+    const badges = walk(ids['result']).filter((el) => el.className === 'qty');
+    expect(badges.length).toBeGreaterThan(0);
+    expect(badges[0].textContent).toMatch(/^×[2-3]$/);
   });
 });

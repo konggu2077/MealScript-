@@ -3,7 +3,7 @@
 <p align="left">
   <img alt="node &gt;= 20" src="docs/badges/node.svg">
   <img alt="workspace npm" src="docs/badges/workspace.svg">
-  <img alt="tests 115 passed" src="docs/badges/tests.svg">
+  <img alt="tests 129 passed" src="docs/badges/tests.svg">
   <img alt="license MIT" src="docs/badges/license.svg">
 </p>
 
@@ -97,7 +97,7 @@ npm install
 # 1) 不依赖任何凭据，先验证编译器是真的
 npm run compile:cli examples/budget.meal
 
-# 2) 跑全部测试（115 个）
+# 2) 跑全部测试（129 个）
 npm test
 
 # 3) 启动网页 Playground
@@ -184,7 +184,7 @@ mealscript/
 │   └── trace/                统一执行轨迹与脱敏
 ├── examples/                 三份 .meal 示例（1 份正确 + 2 份故意写错）
 ├── fixtures/                 脱敏 Replay 案例（成功 / 失败）
-├── tests/                    115 个单元与集成测试
+├── tests/                    129 个单元与集成测试
 ├── CONTEST_DECLARATION.md    官方参赛声明原文（未改动一个字）
 ├── MCP_INTEGRATION.md        实际使用的 MCP Server / Tool / 调用流程
 ├── mcp-config.example.json   配置示例（只有占位符）
@@ -202,11 +202,36 @@ mealscript/
 | `budget` | `<= 金额 CNY`，金额为正 | `-10` / `USD` → E101 |
 | `require_keyword` | 单个关键词，或用 `,` `，` `、` 分隔的多关键词，或字符串数组。按**商品名 / 分类名 / 标签**匹配（如 `汉堡`、`小食`、`甜品`、`咖啡` 都有效） | 空串 → E001；任一关键词无匹配商品 → E211；关键词个数 > `max_items` → E103 |
 | `exclude_keywords` | 字符串数组（元素内也可用逗号写多个） | 非法数组 → E001 |
-| `min_items` / `max_items` | 整数 1–3 | 越界或 `min > max` → E103 |
+| `min_items` / `max_items` | 整数 1–3，**按件数**计（同款两份算两件） | 越界或 `min > max` → E103 |
+| `allow_repeat` | `true` / `false`，默认 `false`。开启后同一款商品可以占多个名额 | 非 true/false → E001 |
 | `optimize` | v0.1 仅 `min(total_price)` | `max(protein)` → E104 |
 | `execution` | v0.1 固定 `dry_run` | `place_order` → E105 |
 
-**省略时的默认值**：`mode=pickup`、`min_items=1`、`max_items=2`、`optimize=min(total_price)`、`execution=dry_run`。
+**省略时的默认值**：`mode=pickup`、`min_items=1`、`max_items=2`、`allow_repeat=false`、`optimize=min(total_price)`、`execution=dry_run`。
+
+### 同款多份：`allow_repeat`
+
+默认**不允许**同一款商品占两个名额 —— 否则在「最便宜」这个目标下，任何两件套餐都会退化成「最便宜的那件 ×2」，
+搜索就失去了意义。真要点两份一样的，显式打开：
+
+```mealscript
+meal drinks {
+  location: "北京市朝阳区三里屯";
+  mode: pickup;
+  budget: <= 20 CNY;
+  require_keyword: "饮品";
+  exclude_keywords: ["甜品", "小食"];
+  min_items: 2;
+  max_items: 2;
+  allow_repeat: true;
+  optimize: min(total_price);
+  execution: dry_run;
+}
+// → 雪碧 ×2，实付 ¥19.00（官方结算价）
+```
+
+`min_items` / `max_items` 数的是**件数**：`min_items: 2` + 两份同款 = 满足。结果里同款会合并成一行并标出份数（`×2`），
+送进官方 `calculate-price` 时按真实 `quantity` 计费。
 
 ### 多关键词：AND 语义
 
@@ -299,14 +324,14 @@ npm test
 ```
 
 ```
-✓ tests/compiler.test.ts       (39 tests)
-✓ tests/optimizer.test.ts      (28 tests)
+✓ tests/compiler.test.ts       (43 tests)
+✓ tests/optimizer.test.ts      (33 tests)
 ✓ tests/trace.test.ts          (14 tests)
-✓ tests/verifier.test.ts       (10 tests)
+✓ tests/verifier.test.ts       (13 tests)
 ✓ tests/pipeline.test.ts       (10 tests)
-✓ tests/browser-bundle.test.ts (13 tests)
+✓ tests/browser-bundle.test.ts (15 tests)
 ✓ tests/mcp-client.test.ts     ( 1 test)
-Test Files  7 passed (7)       Tests  115 passed (115)
+Test Files  7 passed (7)       Tests  129 passed (129)
 ```
 
 覆盖：合法/非法语法、全部错误码、location 拆分、脱敏、有界搜索的边界与上限、官方价 vs 菜单价、Replay 永不冒充 Live、端到端流水线，

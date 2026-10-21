@@ -269,6 +269,31 @@ export function analyze(program: Program): SemanticResult {
     }
   }
 
+  // --- allow_repeat (E001) ------------------------------------------------
+  // Off by default. With `min(total_price)` and repetition on, the cheapest
+  // answer is always "N copies of the cheapest item" — correct but useless — so
+  // repeating a product has to be an explicit request.
+  const repeatField = seen.get('allow_repeat');
+  let allowRepeat = false;
+  if (repeatField) {
+    const value = repeatField.value;
+    const raw = value.kind === 'ident' ? value.value : '';
+    if (raw === 'true') {
+      allowRepeat = true;
+    } else if (raw === 'false') {
+      allowRepeat = false;
+    } else {
+      push(
+        makeDiagnostic(
+          'E001',
+          `allow_repeat 只能是 true 或 false，当前为「${raw || '空值'}」`,
+          pos(repeatField),
+          '写成 allow_repeat: true;，或删掉该字段（默认不允许同款多份）',
+        ),
+      );
+    }
+  }
+
   // --- optimize (E104) ----------------------------------------------------
   const optimizeField = seen.get('optimize');
   let optimize: MealIR['optimize'] = { fn: 'min', target: 'total_price' };
@@ -327,6 +352,7 @@ export function analyze(program: Program): SemanticResult {
     excludeKeywords,
     minItems,
     maxItems,
+    allowRepeat,
     optimize,
     execution: 'dry_run',
   };

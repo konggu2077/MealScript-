@@ -3,6 +3,7 @@ import {
   Colon,
   Comma,
   Identifier,
+  KwAllowRepeat,
   KwBudget,
   KwCny,
   KwExcludeKeywords,
@@ -107,6 +108,7 @@ class MealParser extends EmbeddedActionsParser {
       { ALT: () => this.SUBRULE(this.excludeKeywordsStmt) },
       { ALT: () => this.SUBRULE(this.minItemsStmt) },
       { ALT: () => this.SUBRULE(this.maxItemsStmt) },
+      { ALT: () => this.SUBRULE(this.allowRepeatStmt) },
       { ALT: () => this.SUBRULE(this.optimizeStmt) },
       { ALT: () => this.SUBRULE(this.executionStmt) },
     ]),
@@ -226,6 +228,21 @@ class MealParser extends EmbeddedActionsParser {
     const value = this.CONSUME(NumberLiteral);
     const semi = this.CONSUME(Semi);
     return this.field('max_items', { kind: 'number', value: Number(value.image) }, kw, value, value, semi);
+  });
+
+  /**
+   * `allow_repeat: true;` — lets one product fill more than one slot.
+   *
+   * The value is a plain identifier on purpose (same rule as `mode` / `execution`):
+   * `allow_repeat: yes;` still parses, then the semantic layer rejects it with a
+   * precise hint instead of a generic syntax error.
+   */
+  private allowRepeatStmt = this.RULE('allowRepeatStmt', () => {
+    const kw = this.CONSUME(KwAllowRepeat);
+    this.CONSUME(Colon);
+    const value = this.CONSUME(Identifier);
+    const semi = this.CONSUME(Semi);
+    return this.field('allow_repeat', { kind: 'ident', value: value.image }, kw, value, value, semi);
   });
 
   private optimizeStmt = this.RULE('optimizeStmt', () => {

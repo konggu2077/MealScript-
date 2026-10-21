@@ -10,10 +10,38 @@ export interface OptimizerItem {
 }
 
 export interface Candidate {
-  /** Distinct items, quantity 1 each. v0.1 does not repeat items. */
+  /**
+   * One entry **per piece**, in menu order. A repeated product appears once per
+   * piece (`[麦香鸡, 麦香鸡]`), so `items.length` is the piece count that
+   * `min_items` / `max_items` measure. Repetition only ever happens when the
+   * source asked for it with `allow_repeat: true;`.
+   */
   items: OptimizerItem[];
   /** Sum of menu prices — a *coarse* estimate only, never the final answer. */
   menuTotalCny: number;
+}
+
+/**
+ * Collapse a per-piece list into per-product lines with a quantity, which is
+ * what `calculate-price` and the UI actually need.
+ *
+ * Order follows first appearance, so the report reads the same way the meal was
+ * built.
+ */
+export function aggregateItems(items: OptimizerItem[]): Array<{ item: OptimizerItem; qty: number }> {
+  const lines: Array<{ item: OptimizerItem; qty: number }> = [];
+  const index = new Map<string, { item: OptimizerItem; qty: number }>();
+  for (const item of items) {
+    const hit = index.get(item.code);
+    if (hit) {
+      hit.qty += 1;
+      continue;
+    }
+    const line = { item, qty: 1 };
+    index.set(item.code, line);
+    lines.push(line);
+  }
+  return lines;
 }
 
 export interface OptimizerStats {
@@ -70,13 +98,15 @@ function matches(item: OptimizerItem, keyword: string): boolean {
  */
 export function buildCandidates(
   menu: OptimizerItem[],
-  ir: Pick<MealIR, 'requireKeywords' | 'excludeKeywords' | 'minItems' | 'maxItems' | 'budget'>,
+  ir: Pick<MealIR, 'requireKeywords' | 'excludeKeywords' | 'minItems' | 'maxItems' | 'budget'> &
+    Partial<Pick<MealIR, 'allowRepeat'>>,
   options: OptimizerOptions = {},
 ): OptimizerResult {
   const topK = options.topK ?? DEFAULT_TOP_K;
   const maxCombinations = options.maxCombinations ?? DEFAULT_MAX_COMBINATIONS;
   const budget = ir.budget.amountCny;
   const menuSize = menu.length;
+  const allowRepeat = ir.allowRepeat === true;
 
   const allowed = menu.filter((item) => !ir.excludeKeywords.some((bad) => matches(item, bad)));
   // Keywords select *which* items satisfy the request, not *what the rest of the
@@ -101,6 +131,7 @@ export function buildCandidates(
     enumerated,
     searchScope:
       `在 ${ir.minItems}–${ir.maxItems} 件窗口内搜索，允许集 ${allowed.length} 件` +
+      (allowRepeat ? '（允许同款多份）' : '') +
       (ir.requireKeywords.length > 0 ? `（${keywordSummary}）` : '') +
       extra,
     exhaustive,
@@ -178,14 +209,18 @@ export function buildCandidates(
     if (max < 2) continue;
     if (a.priceCny > budget) break;
 
-    for (let j = i + 1; j < pool.length; j += 1) {
+    // `allowRepeat` turns the index bounds from strict (i<j<k, all distinct)
+    // into non-strict (i<=j<=k, multisets). Because the pool is price-sorted,
+    // the budget `break`s stay exact in both modes: a later index is never
+    // cheaper, so anything past the break point cannot fit either.
+    for (let j = allowRepeat ? i : i + 1; j < pool.length; j += 1) {
       const b = pool[j];
       if (!b) continue;
       if (a.priceCny + b.priceCny > budget) break;
       if (min <= 2) push([a, b]);
       if (max < 3) continue;
 
-      for (let k = j + 1; k < pool.length; k += 1) {
+      for (let k = allowRepeat ? j : j + 1; k < pool.length; k += 1) {
         const c = pool[k];
         if (!c) continue;
         if (a.priceCny + b.priceCny + c.priceCny > budget) break;

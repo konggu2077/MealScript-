@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildCandidates, type OptimizerItem } from '@mealscript/optimizer';
+import { aggregateItems, buildCandidates, type OptimizerItem } from '@mealscript/optimizer';
 
 const MENU: OptimizerItem[] = [
   { code: 'a', name: '香辣汉堡', priceCny: 20, tags: ['汉堡'] },
@@ -207,11 +207,56 @@ describe('bounded combination search', () => {
     expect([...totals].sort((a, b) => a - b)).toEqual(totals);
   });
 
-  it('never repeats the same item inside one candidate', () => {
+  it('never repeats the same item inside one candidate by default', () => {
     const result = buildCandidates(MENU, { ...base, budget: { amountCny: 100 } });
     for (const candidate of result.candidates) {
       expect(new Set(candidate.items.map((i) => i.code)).size).toBe(candidate.items.length);
     }
+  });
+
+  it('fills two slots with one product once allow_repeat is on', () => {
+    // 排除可乐后，2 件能吃下的只有 薯条×2 = ¥20（薯条+冰咖啡要 ¥22）。
+    const result = buildCandidates(MENU, {
+      ...base,
+      minItems: 2,
+      maxItems: 2,
+      allowRepeat: true,
+      excludeKeywords: ['可乐'],
+      requireKeywords: ['薯条'],
+      budget: { amountCny: 20 },
+    });
+    expect(result.ok).toBe(true);
+    const top = result.candidates[0];
+    expect(top?.items.map((i) => i.code)).toEqual(['c', 'c']);
+    expect(top?.menuTotalCny).toBe(20);
+    expect(result.stats.searchScope).toContain('允许同款多份');
+  });
+
+  it('cannot build 薯条 ×2 while allow_repeat is off', () => {
+    const result = buildCandidates(MENU, {
+      ...base,
+      minItems: 2,
+      maxItems: 2,
+      requireKeywords: ['薯条'],
+      budget: { amountCny: 20 },
+    });
+    for (const candidate of result.candidates) {
+      expect(new Set(candidate.items.map((i) => i.code)).size).toBe(candidate.items.length);
+    }
+  });
+
+  it('counts pieces, not distinct products, when a product repeats', () => {
+    const result = buildCandidates(MENU, {
+      ...base,
+      minItems: 3,
+      maxItems: 3,
+      allowRepeat: true,
+      requireKeywords: ['可乐'],
+      budget: { amountCny: 24 },
+    });
+    // 可乐 ¥8 ×3 = ¥24 是最便宜的 3 件解。
+    expect(result.candidates[0]?.items).toHaveLength(3);
+    expect(result.candidates[0]?.items.every((i) => i.code === 'e')).toBe(true);
   });
 
   it('honours the topK ceiling', () => {
@@ -279,5 +324,22 @@ describe('bounded combination search', () => {
     const result = buildCandidates(MENU, { ...base, maxItems: 5, budget: { amountCny: 100 } });
     expect(result.stats.exhaustive).toBe(false);
     expect(result.stats.searchScope).toContain('max_items 超过 3');
+  });
+});
+
+describe('aggregateItems', () => {
+  it('collapses repeated pieces into one line with a quantity, keeping order', () => {
+    const a = { code: 'a', name: 'A', priceCny: 10 };
+    const b = { code: 'b', name: 'B', priceCny: 8 };
+    expect(aggregateItems([a, a, b])).toEqual([
+      { item: a, qty: 2 },
+      { item: b, qty: 1 },
+    ]);
+  });
+
+  it('leaves a distinct meal untouched', () => {
+    const a = { code: 'a', name: 'A', priceCny: 10 };
+    const b = { code: 'b', name: 'B', priceCny: 8 };
+    expect(aggregateItems([a, b]).map((line) => line.qty)).toEqual([1, 1]);
   });
 });

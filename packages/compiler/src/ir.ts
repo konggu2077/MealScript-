@@ -29,6 +29,11 @@ export interface MealIR {
   excludeKeywords: string[];
   minItems: number;
   maxItems: number;
+  /**
+   * Whether one product may fill more than one slot (e.g. two 麦香鸡).
+   * `minItems` / `maxItems` always count pieces, not distinct products.
+   */
+  allowRepeat: boolean;
   optimize: { fn: 'min'; target: 'total_price' };
   /** v0.1 is dry_run only (E105 for anything else). */
   execution: 'dry_run';
