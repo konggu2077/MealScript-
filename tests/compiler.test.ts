@@ -280,6 +280,47 @@ describe('MealScript semantic checks', () => {
     expect(result.ir?.excludeKeywords).toEqual(['咖啡', '脆脆薯条']);
   });
 
+  it('accepts a five-item window', () => {
+    const result = compile(
+      code(
+        'meal tray {',
+        '  location: "北京市海淀区五道口";',
+        '  budget: <= 45 CNY;',
+        '  min_items: 5;',
+        '  max_items: 5;',
+        '}',
+      ),
+    );
+    expect(result.ok).toBe(true);
+    expect(result.ir?.maxItems).toBe(5);
+  });
+
+  it('E103 — rejects an item window above the ceiling', () => {
+    const result = compile(
+      code(
+        'meal tray {',
+        '  location: "北京市海淀区五道口";',
+        '  budget: <= 45 CNY;',
+        '  max_items: 6;',
+        '}',
+      ),
+    );
+    const diagnostic = firstAt(result.diagnostics, 'E103');
+    expect(diagnostic.message).toContain('1–5');
+  });
+
+  it('accepts max(total_price) and carries the direction into the IR', () => {
+    const result = compile(VALID.replace('min(total_price)', 'max(total_price)'));
+    expect(result.ok).toBe(true);
+    expect(result.ir?.optimize).toEqual({ fn: 'max', target: 'total_price' });
+  });
+
+  it('E104 — a direction other than min/max is rejected', () => {
+    const result = compile(VALID.replace('min(total_price)', 'avg(total_price)'));
+    const diagnostic = firstAt(result.diagnostics, 'E104');
+    expect(diagnostic.message).toContain('min 或 max');
+  });
+
   it('applies defaults when optional fields are omitted', () => {
     const result = compile(
       code('meal lunch {', '  location: "北京市海淀区五道口";', '  budget: <= 35 CNY;', '}'),

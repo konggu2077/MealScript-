@@ -34,7 +34,13 @@ export interface MealIR {
    * `minItems` / `maxItems` always count pieces, not distinct products.
    */
   allowRepeat: boolean;
-  optimize: { fn: 'min'; target: 'total_price' };
+  /**
+   * `min(total_price)` — cheapest meal that still satisfies the constraints.
+   * `max(total_price)` — most of the budget you can spend, never exceeding it
+   * ("吃满预算"). The optimizer, not the compiler, decides what "best" means,
+   * so the direction has to travel in the IR.
+   */
+  optimize: { fn: 'min' | 'max'; target: 'total_price' };
   /** v0.1 is dry_run only (E105 for anything else). */
   execution: 'dry_run';
 }

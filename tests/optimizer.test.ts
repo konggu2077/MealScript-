@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { aggregateItems, buildCandidates, type OptimizerItem } from '@mealscript/optimizer';
+import { aggregateItems, buildCandidates, MAX_SEARCH_ITEMS, type OptimizerItem } from '@mealscript/optimizer';
+import { MAX_ITEMS_LIMIT } from '@mealscript/compiler';
 
 const MENU: OptimizerItem[] = [
   { code: 'a', name: '香辣汉堡', priceCny: 20, tags: ['汉堡'] },
@@ -320,10 +321,168 @@ describe('bounded combination search', () => {
   });
 
   it('reports a clamped max_items instead of claiming exhaustiveness', () => {
-    // The DSL rejects max_items > 3, but direct callers are not protected.
-    const result = buildCandidates(MENU, { ...base, maxItems: 5, budget: { amountCny: 100 } });
+    // The DSL rejects max_items above MAX_SEARCH_ITEMS, but direct callers are
+    // not protected — the clamp has to stay honest on its own.
+    const result = buildCandidates(MENU, { ...base, maxItems: MAX_SEARCH_ITEMS + 2, budget: { amountCny: 100 } });
     expect(result.stats.exhaustive).toBe(false);
-    expect(result.stats.searchScope).toContain('max_items 超过 3');
+    expect(result.stats.searchScope).toContain(`max_items 超过 ${MAX_SEARCH_ITEMS}`);
+  });
+
+  it('keeps its search ceiling in sync with the compiler limit', () => {
+    // Duplicated constants in two dependency-free packages: if one moves, this
+    // test is the only thing standing between the user and a silent E103.
+    expect(MAX_SEARCH_ITEMS).toBe(MAX_ITEMS_LIMIT);
+  });
+});
+
+/**
+ * The DFS replaced three hard-coded nested loops, so the safest possible
+ * check is to keep a stupid-but-obvious brute force next to it and demand
+ * identical answers. If the pruning is ever wrong, this is what catches it.
+ */
+function bruteForceTotals(
+  menu: OptimizerItem[],
+  minItems: number,
+  maxItems: number,
+  budget: number,
+  allowRepeat: boolean,
+): number[] {
+  const pool = [...menu].sort((a, b) => a.priceCny - b.priceCny);
+  const totals: number[] = [];
+  const pick: OptimizerItem[] = [];
+
+  const walk = (start: number, sum: number) => {
+    if (pick.length >= minItems) totals.push(Math.round(sum * 100) / 100);
+    if (pick.length === maxItems) return;
+    for (let i = start; i < pool.length; i += 1) {
+      const item = pool[i] as OptimizerItem;
+      const next = sum + item.priceCny;
+      if (next > budget) break;
+      pick.push(item);
+      walk(allowRepeat ? i : i + 1, next);
+      pick.pop();
+    }
+  };
+
+  walk(0, 0);
+  return totals;
+}
+
+const LADDER: OptimizerItem[] = [
+  { code: 'p1', name: 'A', priceCny: 3 },
+  { code: 'p2', name: 'B', priceCny: 5 },
+  { code: 'p3', name: 'C', priceCny: 7 },
+  { code: 'p4', name: 'D', priceCny: 9 },
+  { code: 'p5', name: 'E', priceCny: 11 },
+  { code: 'p6', name: 'F', priceCny: 13 },
+  { code: 'p7', name: 'G', priceCny: 17 },
+];
+
+describe('search agrees with brute force (4–5 items)', () => {
+  for (const size of [4, 5]) {
+    for (const budget of [30, 40, 60]) {
+      it(`min: ${size} items under ¥${budget}`, () => {
+        const totals = bruteForceTotals(LADDER, size, size, budget, false);
+        const expected = Math.min(...totals);
+        const result = buildCandidates(LADDER, {
+          requireKeywords: [],
+          excludeKeywords: [],
+          minItems: size,
+          maxItems: size,
+          budget: { amountCny: budget },
+        });
+
+        if (!Number.isFinite(expected)) {
+          expect(result.ok).toBe(false);
+          return;
+        }
+        expect(result.ok).toBe(true);
+        expect(result.candidates[0]?.menuTotalCny).toBe(expected);
+        expect(result.stats.exhaustive).toBe(true);
+      });
+
+      it(`max: ${size} items under ¥${budget}`, () => {
+        const totals = bruteForceTotals(LADDER, size, size, budget, false);
+        const expected = Math.max(...totals);
+        const result = buildCandidates(LADDER, {
+          requireKeywords: [],
+          excludeKeywords: [],
+          minItems: size,
+          maxItems: size,
+          budget: { amountCny: budget },
+          optimize: { fn: 'max', target: 'total_price' },
+        });
+
+        if (!Number.isFinite(expected)) {
+          expect(result.ok).toBe(false);
+          return;
+        }
+        expect(result.ok).toBe(true);
+        expect(result.candidates[0]?.menuTotalCny).toBe(expected);
+        expect(result.candidates[0]?.menuTotalCny).toBeLessThanOrEqual(budget);
+      });
+    }
+  }
+
+  it('min/max with repetition still match brute force', () => {
+    const totals = bruteForceTotals(LADDER, 4, 4, 20, true);
+    const min = buildCandidates(LADDER, {
+      requireKeywords: [],
+      excludeKeywords: [],
+      minItems: 4,
+      maxItems: 4,
+      budget: { amountCny: 20 },
+      allowRepeat: true,
+    });
+    const max = buildCandidates(LADDER, {
+      requireKeywords: [],
+      excludeKeywords: [],
+      minItems: 4,
+      maxItems: 4,
+      budget: { amountCny: 20 },
+      allowRepeat: true,
+      optimize: { fn: 'max', target: 'total_price' },
+    });
+
+    expect(min.candidates[0]?.menuTotalCny).toBe(Math.min(...totals));
+    expect(max.candidates[0]?.menuTotalCny).toBe(Math.max(...totals));
+    // ¥3 × 4 is the cheapest legal multiset, and it repeats the same product.
+    expect(min.candidates[0]?.items.map((item) => item.code)).toEqual(['p1', 'p1', 'p1', 'p1']);
+  });
+
+  it('candidate order follows the optimize direction', () => {
+    const shared = {
+      requireKeywords: [],
+      excludeKeywords: [] as string[],
+      minItems: 4,
+      maxItems: 4,
+      budget: { amountCny: 60 },
+    };
+    const ascending = buildCandidates(LADDER, shared);
+    const descending = buildCandidates(LADDER, { ...shared, optimize: { fn: 'max' as const, target: 'total_price' as const } });
+
+    const ascTotals = ascending.candidates.map((c) => c.menuTotalCny);
+    const descTotals = descending.candidates.map((c) => c.menuTotalCny);
+    expect(ascTotals).toEqual([...ascTotals].sort((a, b) => a - b));
+    expect(descTotals).toEqual([...descTotals].sort((a, b) => b - a));
+    expect(descTotals[0]).toBeGreaterThan(ascTotals[0] as number);
+  });
+
+  it('admits when the node budget truncated the search', () => {
+    const big: OptimizerItem[] = Array.from({ length: 40 }, (_, i) => ({
+      code: `p${i}`,
+      name: `商品${i}`,
+      priceCny: 1 + ((i * 7) % 9),
+    }));
+
+    const result = buildCandidates(
+      big,
+      { requireKeywords: [], excludeKeywords: [], minItems: 5, maxItems: 5, budget: { amountCny: 400 } },
+      { maxEnumerations: 500 },
+    );
+
+    expect(result.stats.exhaustive).toBe(false);
+    expect(result.stats.searchScope).toContain('规模上限');
   });
 });
 

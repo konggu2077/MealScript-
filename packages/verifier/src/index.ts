@@ -47,11 +47,13 @@ export interface VerifyOptions {
   budgetCny: number;
   /** Cap on official calculate-price calls (rate limit is 600/min per token). */
   maxVerifiedCalls?: number;
-  /** How many passing candidates to keep — lowest *official* price first. */
+  /** How many passing candidates to keep, best first under `fn`. */
   stopAfter?: number;
   /** Parallel calculate-price calls. Defaults to 3. */
   concurrency?: number;
   now?: () => string;
+  /** Optimize direction; decides which end of the official price range wins. */
+  fn?: 'min' | 'max';
 }
 
 const DEFAULT_MAX_CALLS = 8;
@@ -88,8 +90,11 @@ async function mapWithConcurrency<T, R>(items: T[], limit: number, fn: (item: T)
  * must be sorted by *official* price — a discounted combo can be cheaper at
  * checkout than one that looked cheaper on the menu. So every candidate in the
  * batch is priced (in parallel, then re-ordered by the official total) before
- * the cheapest `stopAfter` are kept. Stopping at the first N that happen to
- * pass would return the cheapest *by menu*, which is not the same thing.
+ * the best `stopAfter` are kept. Stopping at the first N that happen to pass
+ * would return the cheapest *by menu*, which is not the same thing.
+ *
+ * "Best" follows `optimize`: `min` keeps the cheapest official totals, `max`
+ * keeps the most expensive ones that still fit the budget.
  *
  * Failure policy: a failed or unparseable call is recorded and skipped. It is
  * never turned into a "success", and partial results are returned as-is.
@@ -157,7 +162,7 @@ export async function verifyCandidates(
   const verified = verdicts
     .filter((verdict): verdict is { ok: true; value: VerifiedCandidate } => verdict.ok)
     .map((verdict) => verdict.value)
-    .sort((a, b) => a.totalCny - b.totalCny)
+    .sort((a, b) => (options.fn === 'max' ? b.totalCny - a.totalCny : a.totalCny - b.totalCny))
     .slice(0, Math.max(0, stopAfter));
 
   if (verified.length > 0) {

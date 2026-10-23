@@ -15,4 +15,9 @@ export interface MealIR {
    * be asked for explicitly (`allow_repeat: true;`).
    */
   allowRepeat: boolean;
+  /**
+   * Which direction counts as "best". Optional so existing callers that omit
+   * it keep the original cheapest-first behaviour.
+   */
+  optimize?: { fn: 'min' | 'max'; target: 'total_price' };
 }

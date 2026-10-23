@@ -338,6 +338,9 @@ footer code{font-family:var(--mono);color:var(--fg2)}
     }
     if(r.searchScope){
       var sc=document.createElement('div');sc.className='evidence';sc.style.marginTop='10px';
+      // An inexhaustive search must not look like a normal one: the numbers are
+      // real, but the claim "this is the best meal" is not.
+      if(r.stats&&r.stats.exhaustive===false)sc.style.color='var(--gold)';
       sc.textContent='搜索范围：'+r.searchScope;resultEl.appendChild(sc);
     }
   }
@@ -401,7 +404,7 @@ footer code{font-family:var(--mono);color:var(--fg2)}
     'require_keyword':'require_keyword: "|"','exclude_keywords':'exclude_keywords: ["|"]',
     'min_items':'min_items: |','max_items':'max_items: |','allow_repeat':'allow_repeat: |','optimize':'optimize: |','execution':'execution: |'
   };
-  var VALUE_SUGGEST={mode:['pickup','delivery'],execution:['dry_run','live'],optimize:['min(total_price)'],allow_repeat:['true','false']};
+  var VALUE_SUGGEST={mode:['pickup','delivery'],execution:['dry_run','live'],optimize:['min(total_price)','max(total_price)'],allow_repeat:['true','false']};
   function acHide(){ac.style.display='none';acCtx=null;}
   function keywordPool(){
     var kw=(MS&&MS.KEYWORDS)||{categories:[],products:[],tags:[]};

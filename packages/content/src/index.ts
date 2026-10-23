@@ -81,6 +81,38 @@ export const EXAMPLES: Example[] = [
     ]),
   },
   {
+    id: 'five-items',
+    label: '五件套 · 主食 + 小食 + 饮品 + 甜品',
+    source: program([
+      'meal tray {',
+      '  location: "北京市海淀区五道口";',
+      '  mode: pickup;',
+      '  budget: <= 45 CNY;',
+      '  require_keyword: "汉堡";',
+      '  min_items: 5;',
+      '  max_items: 5;',
+      '  optimize: min(total_price);',
+      '  execution: dry_run;',
+      '}',
+    ]),
+  },
+  {
+    id: 'max-budget',
+    label: '吃满预算 · max(total_price)',
+    source: program([
+      'meal feast {',
+      '  location: "北京市海淀区五道口";',
+      '  mode: pickup;',
+      '  budget: <= 45 CNY;',
+      '  require_keyword: "汉堡";',
+      '  min_items: 2;',
+      '  max_items: 3;',
+      '  optimize: max(total_price);',
+      '  execution: dry_run;',
+      '}',
+    ]),
+  },
+  {
     id: 'multi-keyword',
     label: '多关键词 · 汉堡 + 麦旋风（两个都要）',
     source: program([

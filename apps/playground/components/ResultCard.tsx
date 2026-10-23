@@ -113,7 +113,15 @@ export default function ResultCard({ result }: { result: BuildResult | null }) {
       ) : null}
 
       {result.searchScope ? (
-        <p className="mt-2.5 text-xs leading-relaxed text-fg-3">搜索范围：{result.searchScope}</p>
+        <p
+          className={
+            result.stats?.exhaustive === false
+              ? 'mt-2.5 text-xs leading-relaxed text-warn-fg'
+              : 'mt-2.5 text-xs leading-relaxed text-fg-3'
+          }
+        >
+          搜索范围：{result.searchScope}
+        </p>
       ) : null}
     </div>
   );

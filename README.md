@@ -3,7 +3,7 @@
 <p align="left">
   <img alt="node &gt;= 20" src="docs/badges/node.svg">
   <img alt="workspace npm" src="docs/badges/workspace.svg">
-  <img alt="tests 130 passed" src="docs/badges/tests.svg">
+  <img alt="tests 152 passed" src="docs/badges/tests.svg">
   <img alt="license MIT" src="docs/badges/license.svg">
 </p>
 
@@ -59,10 +59,18 @@ REPLAY_RESULT  官方结算价 ¥22.50  预算剩余 ¥12.50
 
 ## 界面一览
 
-![MealScript Playground](docs/ui-preview.svg)
+第一张是定视觉稿用的**设计还原图**（手绘 SVG）；后面两张是**真实运行截图**——无头浏览器直接打开 `dist/mealscript.html` 抓的，没有手绘、没有修图。
+
+![MealScript 界面设计还原图](docs/ui-preview.svg)
+
+![MealScript 单文件版真实截图](docs/screenshot-app.png)
 
 左边写 `.meal`，中间六个阶段依次亮起，右边给出带官方结算价的结果卡，底部是脱敏后的执行轨迹。
 状态由真实事件驱动，不是动画；`Live` / `Replay` 标签全程可见。
+
+把件数开到 5 件，同样是真跑出来的（注意底部「在 5–5 件窗口内搜索」和 5 行商品明细）：
+
+![MealScript 五件套真实截图](docs/screenshot-five-items.png)
 
 故意写错一行，它不会含糊地说「我不太确定」，而是给出行列号、错误码和修复建议：
 
@@ -97,14 +105,14 @@ npm install
 # 1) 不依赖任何凭据，先验证编译器是真的
 npm run compile:cli examples/budget.meal
 
-# 2) 跑全部测试（130 个）
+# 2) 跑全部测试（152 个）
 npm test
 
 # 3) 启动网页 Playground
 npm run dev          # → http://localhost:3000
 ```
 
-打开页面后有 5 个内置示例，其中 3 个是**故意写错的**——用来看结构化错误长什么样。
+打开页面后有 12 个内置示例，其中 4 个是**故意写错的**——用来看结构化错误长什么样。
 
 ### 单文件离线版（双击即开，无需安装任何东西）
 
@@ -185,7 +193,7 @@ mealscript/
 │   └── trace/                统一执行轨迹与脱敏
 ├── examples/                 三份 .meal 示例（1 份正确 + 2 份故意写错）
 ├── fixtures/                 脱敏 Replay 案例（成功 / 失败）
-├── tests/                    130 个单元与集成测试
+├── tests/                    152 个单元与集成测试
 ├── CONTEST_DECLARATION.md    官方参赛声明原文（未改动一个字）
 ├── MCP_INTEGRATION.md        实际使用的 MCP Server / Tool / 调用流程
 ├── mcp-config.example.json   配置示例（只有占位符）
@@ -203,12 +211,50 @@ mealscript/
 | `budget` | `<= 金额 CNY`，金额为正 | `-10` / `USD` → E101 |
 | `require_keyword` | 单个关键词，或用 `,` `，` `、` 分隔的多关键词，或字符串数组。按**商品名 / 分类名 / 标签**匹配（如 `汉堡`、`小食`、`甜品`、`咖啡` 都有效） | 空串 → E001；任一关键词无匹配商品 → E211；关键词个数 > `max_items` → E103 |
 | `exclude_keywords` | 字符串数组（元素内也可用逗号写多个） | 非法数组 → E001 |
-| `min_items` / `max_items` | 整数 1–3，**按件数**计（同款两份算两件） | 越界或 `min > max` → E103 |
+| `min_items` / `max_items` | 整数 1–5，**按件数**计（同款两份算两件） | 越界或 `min > max` → E103 |
 | `allow_repeat` | `true` / `false`，默认 `false`。开启后同一款商品可以占多个名额 | 非 true/false → E001 |
-| `optimize` | v0.1 仅 `min(total_price)` | `max(protein)` → E104 |
+| `optimize` | `min(total_price)` 最低总价，或 `max(total_price)` 吃满预算（都不超预算） | 方向非 min/max、目标非 total_price → E104 |
 | `execution` | v0.1 固定 `dry_run` | `place_order` → E105 |
 
 **省略时的默认值**：`mode=pickup`、`min_items=1`、`max_items=2`、`allow_repeat=false`、`optimize=min(total_price)`、`execution=dry_run`。
+
+### 五件套：把窗口开到 5
+
+任务书给的范围是 1–3 件，本项目主动放宽到 **5 件**——一份「主食 + 小食 + 饮品 + 甜品 + 加购」的托盘是真实需求，
+卡在 3 件会让 DSL 在评审随手一试的时候直接报错。放宽的代价是组合数，所以搜索改成了带剪枝的通用 DFS：
+
+```mealscript
+meal tray {
+  location: "北京市海淀区五道口";
+  mode: pickup;
+  budget: <= 45 CNY;
+  require_keyword: "汉堡";
+  min_items: 5;
+  max_items: 5;
+  optimize: min(total_price);
+  execution: dry_run;
+}
+// → 圆筒冰淇淋 + 灰焰圆筒 + 苹果片 + 派 + 麦香鸡，实付 ¥42.00
+```
+
+三道约束保证它不会卡死浏览器：
+
+1. **预算剪枝**：池按价格升序，累计价一旦超预算，后面的分支整片丢弃（后面只会更贵，这是精确剪枝，不是启发式）。
+2. **下界剪枝**：剩下几个名额就算全填最便宜的商品也超预算，直接回头。
+3. **规模熔断**：节点预算（默认 40 万）兜底。一旦触发，`stats.exhaustive` 变成 `false`，
+   界面上的「搜索范围」会变成警示色并写明**结果可能不是全局最优**——不假装搜全了。
+
+### 吃满预算：`max(total_price)`
+
+`min` 找最省，`max` 找「预算内能花多少花多少」。两者都不会超预算，也都只认官方结算价：
+
+```mealscript
+optimize: max(total_price);
+// → 板烧鸡腿堡 + 100% 苹果汁 + 可乐，实付 ¥45.00（预算 ¥45，正好花满）
+```
+
+`max` 方向不能用预算 `break`（越往后越便宜，可能还有戏），所以额外靠**分支定界**剪枝：
+如果剩下的名额全填最贵的也追不上已经保留的最优解，这个子树就没必要展开。
 
 ### 同款多份：`allow_repeat`
 
@@ -271,8 +317,8 @@ require_keyword: ["巨无霸牛鱼肉堡", "麦旋风"];  // 数组
 | E001 | SyntaxError | 语法无效 / 缺分号 / 非法 Token / 缺必需字段 |
 | E101 | SemanticConstraintError | 预算非法：非正数、非 `CNY`、缺 `<=` |
 | E102 | SemanticConstraintError | 取餐模式非法：v0.1 仅 `pickup` |
-| E103 | SemanticConstraintError | 数量范围非法：超出 1–3、`min_items > max_items`，或 `require_keyword` 的关键词个数超过 `max_items` |
-| E104 | SemanticConstraintError | 优化目标非法：v0.1 仅 `min(total_price)` |
+| E103 | SemanticConstraintError | 数量范围非法：超出 1–5、`min_items > max_items`，或 `require_keyword` 的关键词个数超过 `max_items` |
+| E104 | SemanticConstraintError | 优化目标非法：方向只能是 `min` / `max`，目标只能是 `total_price` |
 | E105 | SemanticConstraintError | 执行方式非法：v0.1 仅 `dry_run` |
 | E211 | RequiredProductNotFound | 当前菜单中无匹配商品（报错里会列出该店**可用分类**，照着改关键词即可） |
 | E220 | NoVerifiedCandidate | 已枚举的组合里没有不超预算的（报错会提示调高预算或降低 `min_items`） |
@@ -325,14 +371,14 @@ npm test
 ```
 
 ```
-✓ tests/compiler.test.ts       (43 tests)
-✓ tests/optimizer.test.ts      (33 tests)
+✓ tests/compiler.test.ts       (47 tests)
+✓ tests/optimizer.test.ts      (49 tests)
 ✓ tests/trace.test.ts          (14 tests)
 ✓ tests/verifier.test.ts       (13 tests)
 ✓ tests/pipeline.test.ts       (10 tests)
-✓ tests/browser-bundle.test.ts (16 tests)
+✓ tests/browser-bundle.test.ts (18 tests)
 ✓ tests/mcp-client.test.ts     ( 1 test)
-Test Files  7 passed (7)       Tests  130 passed (130)
+Test Files  7 passed (7)       Tests  152 passed (152)
 ```
 
 覆盖：合法/非法语法、全部错误码、location 拆分、脱敏、有界搜索的边界与上限、官方价 vs 菜单价、Replay 永不冒充 Live、端到端流水线，
@@ -344,6 +390,8 @@ Test Files  7 passed (7)       Tests  130 passed (130)
 ## 与官方标准的偏差说明（如实记录）
 
 - **包管理器**：开发任务书建议 pnpm。本机 pnpm 无法创建目录 junction，导致依赖链接不完整，实际改用 **npm workspaces**（Node 22 自带）。代码与目录结构与任务书一致。
+- **件数窗口**：任务书 §2.1 写的是整数 1–3，本项目放宽到 **1–5**。理由是真实托盘会超过三件，而三件上限会让「五件套」在评审随手一试时直接报 E103。放宽后靠预算剪枝 + 下界剪枝 + 节点熔断控制搜索成本，熔断时结果会标注「可能不是全局最优」。
+- **`optimize` 方向**：任务书只要求 `min(total_price)`，本项目额外支持 `max(total_price)`（预算内花满）。方向只影响「哪个算最好」，不改变「不超预算」这条硬约束，也仍然只认官方结算价。
 - **Monaco 编辑器**：`@monaco-editor/react` 默认从 CDN 加载 monaco，首次打开需要网络。
 - **`budget` 之外的新语法**：未新增任何任务书之外的字段；`location` 因官方 `query-nearby-stores` 只接受 `city` + `keyword`，在编译器内部做确定性拆分（规则见 `packages/compiler/src/location.ts`，有单测）。
 

@@ -130,6 +130,7 @@ export async function runBuild(source: string, client: McdClient): Promise<Build
   const finishPrice = recorder.start('price', 'Price · 官方价格校验');
   const verification = await verifyCandidates(client, store.storeCode, optimized.candidates, {
     budgetCny: ir.budget.amountCny,
+    fn: ir.optimize.fn,
   });
   finishPrice(verification.status === 'BUILD_PASSED' ? 'ok' : 'error', `校验 ${verification.checked} 个候选`);
 

@@ -421,4 +421,56 @@ describe('single-file UI glue (DOM stub)', () => {
     expect(badges.length).toBeGreaterThan(0);
     expect(badges[0].textContent).toMatch(/^×[2-3]$/);
   });
+
+  it('a five-item meal produces a verified result end to end', async () => {
+    // Five pieces is the ceiling the widened search exists for; before the DFS
+    // rewrite this source was rejected outright by the compiler.
+    const { ids } = await loadPage();
+    ids['src'].value =
+      'meal tray {\n  location: "北京市海淀区五道口";\n  mode: pickup;\n  budget: <= 45 CNY;\n' +
+      '  require_keyword: "汉堡";\n  min_items: 5;\n  max_items: 5;\n' +
+      '  optimize: min(total_price);\n  execution: dry_run;\n}';
+    ids['run'].onclick();
+    await new Promise((r) => setTimeout(r, 400));
+
+    expect(ids['runHint'].textContent).toMatch(/^完成 · /);
+    const lines = (function walk(node: any, acc: any[] = []): any[] {
+      for (const child of node.children ?? []) {
+        acc.push(child);
+        walk(child, acc);
+      }
+      return acc;
+    })(ids['result']).filter((el) => el.className === 'line');
+    expect(lines.length).toBe(5);
+  });
+
+  it('max(total_price) spends more of the budget than min does', async () => {
+    const { ids } = await loadPage();
+    const source = (fn: string) =>
+      'meal feast {\n  location: "北京市海淀区五道口";\n  mode: pickup;\n  budget: <= 45 CNY;\n' +
+      `  require_keyword: "汉堡";\n  min_items: 2;\n  max_items: 3;\n` +
+      `  optimize: ${fn}(total_price);\n  execution: dry_run;\n}`;
+
+    const priceOf = async (fn: string) => {
+      ids['src'].value = source(fn);
+      ids['run'].onclick();
+      await new Promise((r) => setTimeout(r, 400));
+      const collect = (node: any, acc: any[] = []): any[] => {
+        acc.push(node);
+        for (const child of node.children ?? []) collect(child, acc);
+        return acc;
+      };
+      // `.big` is the official settlement total; the budget row also contains a
+      // ¥ figure, so matching raw text would compare the budget to itself.
+      const totals = collect(ids['result']).filter((el) => el.className === 'big');
+      expect(totals.length).toBeGreaterThan(0);
+      const match = /¥([0-9]+(?:\.[0-9]+)?)/.exec(totals[0].textContent ?? '');
+      expect(match).not.toBeNull();
+      return Number(match![1]);
+    };
+
+    const cheapest = await priceOf('min');
+    const fullest = await priceOf('max');
+    expect(fullest).toBeGreaterThan(cheapest);
+  });
 });
